@@ -2135,6 +2135,7 @@ function restartGame() {
     playSession:{ filled:0, need:0, catchCount:0, lastWasCatch:false, day:-1 },
     groomSession:{ progress:0, strokes:0, day:-1 },
     teethSession:{ zones:null, day:-1 },
+    nailStates:{ dayUpdated:-1, paws:null },
   };
   document.querySelectorAll('.breed-card').forEach(c=>c.classList.remove('selected'));
   document.getElementById('breed-confirm').classList.remove('ready');
@@ -2552,18 +2553,44 @@ function openNailMiniGame() {
   const BACK_TOE=[{x:148,y:157,ang:-0.35},{x:180,y:136,ang:-0.10},{x:215,y:132,ang:0.12},{x:248,y:143,ang:0.36}];
   const PAW_END_X=128,QUICK_W=70,BODY_BASE=45,BODY_SCALE=78,TIP_W=16,NAIL_CY=240,NAIL_H=40;
 
-  function makePaw(def){
+  // ── 발톱 상태 초기화 / 성장 적용 ──
+  if(!G.nailStates.paws){
     const ni=G.chapter===1?7:14;
-    const daysSince=G.absoluteDay-G.lastNailDay;
-    const gr=Math.min(1,Math.max(0,daysSince/ni));
-    const baseLen=0.3+gr*1.1; // 0.3(방금자름)~1.4(만기)
-    return{...def,nails:Array.from({length:def.nailCount},()=>({length:baseLen+(Math.random()*0.12-0.06),cut:false,cutX:null,cutZone:null,bleeding:false}))};
+    const daysSince=Math.max(0,G.absoluteDay-G.lastNailDay);
+    const gr=Math.min(1,daysSince/ni);
+    const baseLen=0.3+gr*1.1;
+    G.nailStates.paws=PAW_DEFS.map(def=>({
+      nailCount:def.nailCount,
+      nails:Array.from({length:def.nailCount},()=>({
+        length:Math.min(1.4,baseLen+(Math.random()*0.12-0.06)),
+        growthRate:0.7+Math.random()*0.6,
+      }))
+    }));
+    G.nailStates.dayUpdated=G.absoluteDay;
+  } else if(G.nailStates.dayUpdated < G.absoluteDay){
+    const daysGrown=G.absoluteDay-G.nailStates.dayUpdated;
+    const scratchMult=G.shop.scratcher?0.75:1.0;
+    G.nailStates.paws.forEach(paw=>{
+      paw.nails.forEach(nail=>{
+        nail.length=Math.min(1.4, nail.length+0.09*nail.growthRate*scratchMult*daysGrown);
+      });
+    });
+    G.nailStates.dayUpdated=G.absoluteDay;
   }
-  const paws=PAW_DEFS.map(makePaw);
+
+  function makePaw(def,pi){
+    const stored=G.nailStates.paws[pi];
+    return{...def,nails:stored.nails.map(n=>({
+      length:n.length, growthRate:n.growthRate,
+      cut:false,cutX:null,cutZone:null,bleeding:false
+    }))};
+  }
+  const paws=PAW_DEFS.map((d,i)=>makePaw(d,i));
 
   let screen='overview',currentPaw=0,currentNail=0,fadeAlpha=0,hoverX=-1,cutTotal=0,escapeAnim=0,shakeTimer=0,animId=null;
   const ESCAPE_EMOJIS=['😾','🙀','😿'];
   let escapeEmoji='😾';
+  const nailEventState={forceUsed:false,snackUsed:false,calmCount:0,nailsCut:0};
 
   function getZones(nail){const pe=PAW_END_X,qe=pe+QUICK_W,be=qe+BODY_BASE+(nail.length-0.6)*BODY_SCALE,te=be+TIP_W;return{paw_end:pe,quick_end:qe,body_end:be,tip_end:te};}
   function zoneAt(x,nail){const z=getZones(nail);if(x<=z.paw_end)return'paw';if(x<=z.quick_end)return'quick';if(x<=z.body_end)return'body';if(x<=z.tip_end)return'tip';return'outside';}
@@ -2601,6 +2628,23 @@ function openNailMiniGame() {
   function drawPawDone(){const paw=paws[currentPaw];const bled=paw.nails.filter(n=>n.bleeding).length;ctx.fillStyle='rgba(200,168,130,0.08)';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText(`${paw.name} 완료`,W/2,H/2-16);if(bled>0){ctx.fillStyle='rgba(255,100,120,0.65)';ctx.font='12px Apple SD Gothic Neo,sans-serif';ctx.fillText(`혈관 ${bled}곳 손상`,W/2,H/2+10);}}
   function drawDone(){const totalBled=paws.reduce((a,p)=>a+p.nails.filter(n=>n.bleeding).length,0);ctx.fillStyle='rgba(200,168,130,0.08)';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='bold 16px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('발톱 손질 완료',W/2,H/2-18);ctx.fillStyle='rgba(200,168,130,0.55)';ctx.font='12px Apple SD Gothic Neo,sans-serif';ctx.fillText(`총 ${cutTotal}개 자름`,W/2,H/2+8);if(totalBled>0){ctx.fillStyle='rgba(255,110,130,0.65)';ctx.fillText(`혈관 손상 ${totalBled}곳`,W/2,H/2+30);}}
 
+  function getNailChoices(){const c=[];if(nailEventState.calmCount<4)c.push({text:'살살 달래며 계속',type:'calm'});if(!nailEventState.snackUsed)c.push({text:'간식으로 유도',type:'snack'});if(!nailEventState.forceUsed)c.push({text:'억지로 잡고 계속',type:'force'});c.push({text:'오늘은 포기',type:'quit'});return c;}
+  function drawNailEventOverlay(){
+    const choices=getNailChoices();
+    ctx.fillStyle='rgba(10,8,22,0.88)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('고양이가 발버둥쳐요 😾',W/2,110);
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px Apple SD Gothic Neo,sans-serif';ctx.fillText('어떻게 할까요?',W/2,135);
+    choices.forEach((c,i)=>{const y=168+i*72;ctx.fillStyle='rgba(255,255,255,0.06)';ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(24,y,W-48,58,10);ctx.fill();ctx.stroke();ctx.fillStyle='rgba(200,168,130,0.6)';ctx.font='bold 13px Apple SD Gothic Neo,sans-serif';ctx.textAlign='left';ctx.fillText(`${i+1}`,40,y+24);ctx.fillStyle='rgba(255,255,255,0.75)';ctx.font='13px Apple SD Gothic Neo,sans-serif';ctx.fillText(c.text,58,y+33);});
+  }
+  function handleNailEventChoice(idx){
+    const choices=getNailChoices();const c=choices[idx];if(!c)return;
+    if(c.type==='quit'){finishNailGame();return;}
+    if(c.type==='force'){nailEventState.forceUsed=true;G.stats.stress=Math.min(100,G.stats.stress+12);}
+    if(c.type==='snack'){nailEventState.snackUsed=true;G.ledger.push({label:'간식 (발톱 달래기)',cost:500,day:G.absoluteDay});G.careToday.treatCount=(G.careToday.treatCount||0)+1;}
+    if(c.type==='calm'){nailEventState.calmCount++;nailEventState.nailsCut=0;}
+    screen='result';updateUI();
+  }
+
   function updateUI(){
     const paw=paws[currentPaw];
     const infoEl=document.getElementById('nail-info');
@@ -2610,7 +2654,7 @@ function openNailMiniGame() {
     if(screen==='overview'){infoEl.textContent=paw.name;toolBtn.textContent='✂️';nextBtn.textContent='다음 발 →';nextBtn.className='mg-next-btn show';}
     else if(screen==='closeup'){infoEl.textContent=`${currentNail+1} / ${paw.nailCount}`;toolBtn.style.display='none';nextBtn.textContent='건너뛰기 →';nextBtn.className='mg-next-btn show';}
     else if(screen==='result'){infoEl.textContent=`${currentNail+1} / ${paw.nailCount}`;toolBtn.style.display='none';nextBtn.textContent='다음 →';nextBtn.className='mg-next-btn show';}
-    else if(screen==='escape'){infoEl.textContent='';toolBtn.style.display='none';}
+    else if(screen==='escape'||screen==='nailEvent'){infoEl.textContent='';toolBtn.style.display='none';nextBtn.className='mg-next-btn';}
     else if(screen==='pawDone'){infoEl.textContent='';toolBtn.style.display='none';nextBtn.textContent=currentPaw<paws.length-1?'다음 발 →':'완료';nextBtn.className='mg-next-btn show';}
     else if(screen==='done'){infoEl.textContent='';toolBtn.style.display='none';nextBtn.textContent='닫기';nextBtn.className='mg-next-btn show';}
   }
@@ -2622,6 +2666,7 @@ function openNailMiniGame() {
     else if(screen==='fadeIn'){drawPawOverview(currentPaw);ctx.fillStyle=`rgba(13,13,28,${fadeAlpha})`;ctx.fillRect(0,0,W,H);fadeAlpha+=0.07;if(fadeAlpha>=1){screen='closeup';updateUI();}}
     else if(screen==='closeup'||screen==='result')drawCloseup();
     else if(screen==='escape'){drawCloseup();drawEscape();}
+    else if(screen==='nailEvent'){drawCloseup();drawNailEventOverlay();}
     else if(screen==='pawDone')drawPawDone();
     else if(screen==='done')drawDone();
     ctx.restore();
@@ -2635,6 +2680,7 @@ function openNailMiniGame() {
   canvas.addEventListener('pointerdown',e=>{
     e.preventDefault();
     if(screen==='escape'){screen='result';escapeAnim=0;updateUI();return;}
+    if(screen==='nailEvent'){const {x:nx,y:ny}=getPos(e);const nChoices=getNailChoices();const cy0=168;for(let i=0;i<nChoices.length;i++){const cy=cy0+i*72;if(nx>=24&&nx<=W-24&&ny>=cy&&ny<=cy+58){handleNailEventChoice(i);return;}}return;}
     if(screen!=='closeup')return;
     const {x,y}=getPos(e);
     if(y<NAIL_CY-NAIL_H||y>NAIL_CY+NAIL_H)return;
@@ -2643,9 +2689,21 @@ function openNailMiniGame() {
     const z=getZones(nail);const zone=zoneAt(x,nail);
     if(zone==='paw'||zone==='outside')return;
     nail.cut=true;nail.cutX=x;nail.cutZone=zone;nail.bleeding=(zone==='quick');cutTotal++;
+    // ── 발톱 길이 G에 즉시 저장 ──
+    let savedLen=nail.length;
+    if(zone==='quick'){savedLen=0.28;}
+    else if(zone==='body'){savedLen=Math.max(0.28,(x-PAW_END_X-QUICK_W-BODY_BASE)/BODY_SCALE+0.6);}
+    else if(zone==='tip'){savedLen=Math.max(0.28,nail.length-0.06);}
+    G.nailStates.paws[currentPaw].nails[currentNail].length=savedLen;
     screen='result';
-    const escMod=nail.bleeding?2:1;
-    if(Math.random()<escapeChance()*escMod){escapeEmoji=ESCAPE_EMOJIS[Math.floor(Math.random()*ESCAPE_EMOJIS.length)];setTimeout(()=>{screen='escape';escapeAnim=0;shakeTimer=18;updateUI();},600);}
+    // ── 이벤트 트리거 (선택지 패널) ──
+    nailEventState.nailsCut++;
+    const minCut=3+nailEventState.calmCount*2;
+    const hasNailChoices=!nailEventState.forceUsed||!nailEventState.snackUsed||nailEventState.calmCount<4;
+    if(hasNailChoices&&nailEventState.nailsCut>=minCut){
+      const trigChance=0.28+(nail.bleeding?0.25:0);
+      if(Math.random()<trigChance){nailEventState.nailsCut=0;setTimeout(()=>{screen='nailEvent';updateUI();},700);}
+    }
     updateUI();
   },{passive:false});
 
@@ -2721,7 +2779,8 @@ function openTeethMiniGame() {
   ZONES.forEach(z=>{ z.coverage=thSess.zones[z.id]||0; z.foamDots=[]; });
 
   let toolActive=false,isDragging=false,lastX=-1,lastY=-1,totalStrokes=0,sessionEnded=false,eventActive=false,animId=null;
-  const EVENT_CHOICES=[{text:'살살 달래며 계속',type:'calm'},{text:'간식으로 유도',type:'snack'},{text:'억지로 잡고 계속',type:'force'},{text:'오늘은 포기',type:'quit'}];
+  const eventState={forceUsed:false,snackUsed:false,calmCount:0,strokesSinceEvent:0};
+  function getAvailableChoices(){const c=[];if(eventState.calmCount<4)c.push({text:'살살 달래며 계속',type:'calm'});if(!eventState.snackUsed)c.push({text:'간식으로 유도',type:'snack'});if(!eventState.forceUsed)c.push({text:'억지로 잡고 계속',type:'force'});c.push({text:'오늘은 포기',type:'quit'});return c;}
 
   function drawMouth(){
     ctx.fillStyle='#1a1028';ctx.fillRect(0,0,W,H);
@@ -2758,10 +2817,11 @@ function openTeethMiniGame() {
   }
 
   function drawEventOverlay(){
+    const choices=getAvailableChoices();
     ctx.fillStyle='rgba(10,8,22,0.88)';ctx.fillRect(0,0,W,H);
     ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('고양이가 발버둥쳐요 😾',W/2,110);
     ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px Apple SD Gothic Neo,sans-serif';ctx.fillText('어떻게 할까요?',W/2,135);
-    EVENT_CHOICES.forEach((c,i)=>{
+    choices.forEach((c,i)=>{
       const y=168+i*72;
       ctx.fillStyle='rgba(255,255,255,0.06)';ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(24,y,W-48,58,10);ctx.fill();ctx.stroke();
       ctx.fillStyle='rgba(200,168,130,0.6)';ctx.font='bold 13px Apple SD Gothic Neo,sans-serif';ctx.textAlign='left';ctx.fillText(`${i+1}`,40,y+24);
@@ -2780,18 +2840,23 @@ function openTeethMiniGame() {
     const gain=z.importance===2?2.5:z.importance===1?3.5:4;z.coverage=Math.min(100,z.coverage+gain);totalStrokes++;
     thSess.zones[z.id]=z.coverage; // G 실시간 동기화
     if(z.foamDots.length<80)z.foamDots.push({x:x+(Math.random()-0.5)*10,y:y+(Math.random()-0.5)*10,r:2+Math.random()*3.5,a:0.4+Math.random()*0.5});
-    const backBonus=z.importance===2?0.06:0,chance=0.004+backBonus+totalStrokes*0.00015;
-    if(Math.random()<chance)triggerEvent();
+    eventState.strokesSinceEvent++;
+    const minStr=80+eventState.calmCount*70;
+    const hasMore=!eventState.forceUsed||!eventState.snackUsed||eventState.calmCount<4;
+    if(hasMore&&eventState.strokesSinceEvent>minStr&&Math.random()<0.004)triggerEvent();
     const imp=ZONES.filter(z=>z.importance===2),avg=Math.round(imp.reduce((s,z)=>s+z.coverage,0)/imp.length);
     document.getElementById('teeth-info').textContent=toolActive?`열육치 ${avg}%`:'';
   }
 
-  function triggerEvent(){if(eventActive||sessionEnded)return;eventActive=true;toolActive=false;document.getElementById('teeth-tool').classList.remove('active');}
+  function triggerEvent(){if(eventActive||sessionEnded)return;eventActive=true;eventState.strokesSinceEvent=0;toolActive=false;document.getElementById('teeth-tool').classList.remove('active');}
 
   function handleEventChoice(idx){
-    const c=EVENT_CHOICES[idx];eventActive=false;
+    const choices=getAvailableChoices();const c=choices[idx];if(!c)return;
+    eventActive=false;
     if(c.type==='quit'){sessionEnded=true;document.getElementById('teeth-info').textContent='오늘은 여기까지';return;}
-    if(c.type==='force')ZONES.forEach(z=>{z.coverage=Math.max(0,z.coverage-8);thSess.zones[z.id]=z.coverage;});
+    if(c.type==='force'){eventState.forceUsed=true;G.stats.stress=Math.min(100,G.stats.stress+12);ZONES.forEach(z=>{z.coverage=Math.max(0,z.coverage-6);thSess.zones[z.id]=z.coverage;});}
+    if(c.type==='snack'){eventState.snackUsed=true;G.ledger.push({label:'간식 (양치 달래기)',cost:500,day:G.absoluteDay});G.careToday.treatCount=(G.careToday.treatCount||0)+1;}
+    if(c.type==='calm'){eventState.calmCount++;eventState.strokesSinceEvent=0;}
     toolActive=true;document.getElementById('teeth-tool').classList.add('active');lastX=lastY=-1;
   }
 
@@ -2805,7 +2870,7 @@ function openTeethMiniGame() {
 
   canvas.addEventListener('pointerdown',e=>{
     e.preventDefault();const {x,y}=getPos(e);
-    if(eventActive){const cy0=168;for(let i=0;i<4;i++){const cy=cy0+i*72;if(x>=24&&x<=W-24&&y>=cy&&y<=cy+58){handleEventChoice(i);return;}}return;}
+    if(eventActive){const choices=getAvailableChoices();const cy0=168;for(let i=0;i<choices.length;i++){const cy=cy0+i*72;if(x>=24&&x<=W-24&&y>=cy&&y<=cy+58){handleEventChoice(i);return;}}return;}
     isDragging=true;lastX=lastY=-1;brush(x,y);
   },{passive:false});
   canvas.addEventListener('pointermove',e=>{if(!isDragging)return;e.preventDefault();const {x,y}=getPos(e);brush(x,y);},{passive:false});
