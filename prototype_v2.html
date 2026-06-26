@@ -666,16 +666,54 @@ const MOOD_IMGS = {
   maincoon:  { normal:'images/mood_maincoon_normal.jpeg', happy:'images/mood_maincoon_happy.jpeg', bored:'images/mood_maincoon_bored.jpeg', hungry:'images/mood_maincoon_hungry.jpeg', litter:'images/mood_maincoon_litter.jpeg', stress:'images/mood_maincoon_stress.jpeg' },
 };
 
-// 이벤트 씬 이미지
+// 이벤트 씬 이미지 (품종별 — 없는 품종은 default fallback)
 const EVENT_IMAGES = {
-  E001:'images/event_E001.jpeg', E002:'images/event_E002.jpeg', E003:'images/event_E003.jpeg',
-  E004:'images/event_E004.jpeg', E005:'images/event_E005.jpeg',
+  E001:{
+    korean:'images/event_E001_korean.jpeg', russian:'images/event_E001_russian.jpeg',
+    scottish:'images/event_E001_scottish.jpeg', persian:'images/event_E001_persian.jpeg',
+    abyssinian:'images/event_E001_abyssinian.jpeg', maincoon:'images/event_E001_maincoon.jpeg',
+    default:'images/event_E001_default.jpeg',
+  },
+  E002:{
+    korean:'images/event_E002_korean.jpeg', russian:'images/event_E002_russian.jpeg',
+    scottish:'images/event_E002_scottish.jpeg', persian:'images/event_E002_persian.jpeg',
+    abyssinian:'images/event_E002_abyssinian.jpeg', maincoon:'images/event_E002_maincoon.jpeg',
+  },
+  E003:'images/event_E003.jpeg',
+  E004:{
+    korean:'images/event_E004_korean.jpeg', russian:'images/event_E004_russian.jpeg',
+    scottish:'images/event_E004_scottish.jpeg', persian:'images/event_E004_persian.jpeg',
+    abyssinian:'images/event_E004_abyssinian.jpeg', maincoon:'images/event_E004_maincoon.jpeg',
+  },
+  E005:{
+    korean:'images/event_E005_korean.jpeg', russian:'images/event_E005_russian.jpeg',
+    scottish:'images/event_E005_scottish.jpeg', persian:'images/event_E005_persian.jpeg',
+    abyssinian:'images/event_E005_abyssinian.jpeg', maincoon:'images/event_E005_maincoon.jpeg',
+  },
   E006:'images/event_E006.jpeg',
-  E007:'images/event_E007.jpeg', E007b:'images/event_E007b.jpeg',
-  E008:'images/event_E008.jpeg', E009:'images/event_E009.jpeg',
+  E007:'images/event_E007.jpeg',
+  E007b:'images/event_E007b.jpeg',
+  E008:{
+    korean:'images/event_E008_korean.jpeg', russian:'images/event_E008_russian.jpeg',
+    scottish:'images/event_E008_scottish.jpeg', persian:'images/event_E008_persian.jpeg',
+    abyssinian:'images/event_E008_abyssinian.jpeg', maincoon:'images/event_E008_maincoon.jpeg',
+  },
+  E009:{
+    korean:'images/event_E009_korean.jpeg', russian:'images/event_E009_russian.jpeg',
+    scottish:'images/event_E009_scottish.jpeg', persian:'images/event_E009_persian.jpeg',
+    abyssinian:'images/event_E009_abyssinian.jpeg', maincoon:'images/event_E009_maincoon.jpeg',
+  },
   E010:'images/event_E010.jpeg',
-  E011:'images/event_E011.jpeg', E011b:'images/event_E011b.jpeg',
-  E012:'images/event_E012.jpeg', E013:'images/event_E013.jpeg',
+  E011:'images/event_E011.jpeg',
+  E011b:'images/event_E011b.jpeg',
+  E012:{
+    korean:'images/event_E012_korean.jpeg', russian:'images/event_E012_russian.jpeg',
+    scottish:'images/event_E012_scottish.jpeg', persian:'images/event_E012_persian.jpeg',
+    abyssinian:'images/event_E012_abyssinian.jpeg', maincoon:'images/event_E012_maincoon.jpeg',
+    default:'images/event_E012.jpeg',
+  },
+  E013:'images/event_E013.jpeg',
+  E014:'images/event_E014_final.jpeg',
 };
 
 const NAME_SUGGESTIONS = {
@@ -1891,7 +1929,10 @@ function showNextEvent() {
   // Scene
   const sceneImg = document.getElementById('scene-img');
   const sceneOverlay = document.getElementById('scene-overlay');
-  const evImgSrc = EVENT_IMAGES[event.id];
+  const evEntry = EVENT_IMAGES[event.id];
+  const evImgSrc = evEntry
+    ? (typeof evEntry === 'string' ? evEntry : (evEntry[G.breed] || evEntry.default || null))
+    : null;
   if(evImgSrc) {
     sceneImg.src = evImgSrc;
     sceneImg.style.display = '';
