@@ -1264,22 +1264,8 @@ function updateCareButtons() {
     document.getElementById('care-litter').classList.add('alert');
   else document.getElementById('care-litter').classList.remove('alert');
 
-  // 발톱: 마지막으로 자른 지 기간 체크 (챕터1: 7일, 그외: 14일)
-  const nailInterval = G.chapter===1 ? 7 : 14;
-  const nailDue = (G.absoluteDay - G.lastNailDay) >= nailInterval;
-  if(nailDue)
-    document.getElementById('care-nail').classList.add('alert');
-  else document.getElementById('care-nail').classList.remove('alert');
-
-  // 양치: 3일마다
-  const teethDue = (G.absoluteDay - G.lastTeethDay) >= 3;
-  if(teethDue)
-    document.getElementById('care-teeth').classList.add('alert');
-  else document.getElementById('care-teeth').classList.remove('alert');
-
-  // 도구 없으면 반투명 (비활성 아님 — 미니게임은 항상 열림)
-  document.getElementById('care-nail').style.opacity = shop.nailClipper ? '1' : '0.6';
-  document.getElementById('care-teeth').style.opacity = shop.toothBrush ? '1' : '0.6';
+  document.getElementById('care-nail').classList.remove('alert');
+  document.getElementById('care-teeth').classList.remove('alert');
   document.getElementById('care-groom').style.opacity = shop.groomingKit ? '1' : '0.6';
 }
 
@@ -1337,11 +1323,10 @@ const CARE_INFO = {
       const daysSince = G.absoluteDay - G.lastNailDay;
       const nailInterval = G.chapter===1?7:14;
       const status = daysSince>=nailInterval?'<b style="color:#c85858">관리 필요</b>':'<b style="color:#7cb8a0">양호</b>';
-      return `<b>권장 주기:</b> ${interval}<br><b>현재 상태:</b> 마지막 관리 ${daysSince<99?daysSince+'일 전':'없음'} · ${status}<br>혈관(분홍 부분)에서 3mm 앞만 잘라야 합니다<br>${!G.shop.nailClipper?'⚠️ <b>발톱깎이가 없습니다.</b> 샵에서 구매하세요':''}`;
+      return `<b>권장 주기:</b> ${interval}<br><b>현재 상태:</b> 마지막 관리 ${daysSince<99?daysSince+'일 전':'없음'} · ${status}<br>혈관(분홍 부분)에서 3mm 앞만 잘라야 합니다`;
     },
     action:'발톱 관리 완료',
     do(){
-      if(!G.shop.nailClipper) return;
       G.careToday.nail=true;
       G.stats.nail=Math.min(100,G.stats.nail+50);
       G.lastNailDay=G.absoluteDay;
@@ -1353,11 +1338,10 @@ const CARE_INFO = {
     info(){
       const daysSince = G.absoluteDay - G.lastTeethDay;
       const status = daysSince>=3?'<b style="color:#c88840">관리 필요</b>':'<b style="color:#7cb8a0">양호</b>';
-      return `<b>권장 주기:</b> 매일 ~ 주 2~3회<br><b>마지막 양치:</b> ${daysSince<99?daysSince+'일 전':'없음'} · ${status}<br>사람용 치약은 절대 사용 금지 (자일리톨 독성)<br>${!G.shop.toothBrush?'⚠️ <b>칫솔·치약 세트가 없습니다.</b> 샵에서 구매하세요':''}`;
+      return `<b>권장 주기:</b> 매일 ~ 주 2~3회<br><b>마지막 양치:</b> ${daysSince<99?daysSince+'일 전':'없음'} · ${status}<br>사람용 치약은 절대 사용 금지 (자일리톨 독성)`;
     },
     action:'양치질 완료',
     do(){
-      if(!G.shop.toothBrush) return;
       G.careToday.teeth=true;
       G.stats.dental=Math.min(100,G.stats.dental+30);
       G.lastTeethDay=G.absoluteDay;
@@ -1407,7 +1391,7 @@ function openLitterMiniGame() {
     removedGroups = sess.removedGroups;
   } else {
     // ── 새 날 또는 첫 진입: 클럼프 새로 생성 ──
-    const isFirstDay = G.absoluteDay === 1;
+    const isFirstDay = G.absoluteDay === 0;
     const litterStat = G.stats.litter;
 
     // 첫날은 빈 화장실, 이후는 수치 기반
@@ -2103,7 +2087,7 @@ function restartGame() {
     day:1, absoluteDay:0,
     stats:{ hunger:100, hydration:100, litter:100, play:100, groom:100, stress:0, obesity:0, dental:100, nail:100 },
     careToday:{ feed:false, water:false, litter:false, play:false, groom:false, nail:false, teeth:false, treatCount:0 },
-    shop:{ autoFeeder:false, waterFountain:false, autoLitter:false, autoToy:0, catTower:false, scratcher:false, groomingKit:false, nailClipper:false, toothBrush:false, litterMedium:false, litterLarge:false },
+    shop:{ autoFeeder:false, waterFountain:false, autoLitter:false, autoToy:0, catTower:false, scratcher:false, groomingKit:false, nailClipper:true, toothBrush:true, litterMedium:false, litterLarge:false },
     autoToyDays:0, lastNailDay:-99, lastTeethDay:-99, eventDays:[],
     ledger:[], foodTurns:0, litterTurns:0, lureTurns:0, initialCostShown:false,
     litterSession:{ cells:null, totalGroups:0, removedGroups:0, dayGenerated:-1, cols:0 },
@@ -2247,6 +2231,8 @@ const INITIAL_COST_ITEMS = [
   { label:'첫 건강검진', cost:30000 },
   { label:'종합백신 1차', cost:25000 },
   { label:'내부 구충제', cost:10000 },
+  { label:'발톱깎이', cost:12000 },
+  { label:'고양이 칫솔·치약 세트', cost:10000 },
 ];
 
 function showInitialCostPopup(onConfirm) {
