@@ -2554,6 +2554,7 @@ function openNailMiniGame() {
   const PAW_END_X=128,QUICK_W=70,BODY_BASE=45,BODY_SCALE=78,TIP_W=16,NAIL_CY=240,NAIL_H=40;
 
   // ── 발톱 상태 초기화 / 성장 적용 ──
+  if(!G.nailStates) G.nailStates={ dayUpdated:-1, paws:null };
   if(!G.nailStates.paws){
     const ni=G.chapter===1?7:14;
     const daysSince=Math.max(0,G.absoluteDay-G.lastNailDay);
@@ -2579,9 +2580,16 @@ function openNailMiniGame() {
   }
 
   function makePaw(def,pi){
-    const stored=G.nailStates.paws[pi];
+    const stored=G.nailStates.paws&&G.nailStates.paws[pi];
+    if(!stored||!stored.nails||stored.nails.length!==def.nailCount){
+      // 폴백: 저장 데이터 없으면 기존 방식으로 생성
+      const ni=G.chapter===1?7:14;
+      const gr=Math.min(1,Math.max(0,(G.absoluteDay-G.lastNailDay)/ni));
+      const baseLen=0.3+gr*1.1;
+      return{...def,nails:Array.from({length:def.nailCount},()=>({length:baseLen+(Math.random()*0.12-0.06),growthRate:0.7+Math.random()*0.6,cut:false,cutX:null,cutZone:null,bleeding:false}))};
+    }
     return{...def,nails:stored.nails.map(n=>({
-      length:n.length, growthRate:n.growthRate,
+      length:n.length, growthRate:n.growthRate||1.0,
       cut:false,cutX:null,cutZone:null,bleeding:false
     }))};
   }
@@ -2698,7 +2706,7 @@ function openNailMiniGame() {
     screen='result';
     // ── 이벤트 트리거 (선택지 패널) ──
     nailEventState.nailsCut++;
-    const minCut=3+nailEventState.calmCount*2;
+    const minCut=3;
     const hasNailChoices=!nailEventState.forceUsed||!nailEventState.snackUsed||nailEventState.calmCount<4;
     if(hasNailChoices&&nailEventState.nailsCut>=minCut){
       const trigChance=0.28+(nail.bleeding?0.25:0);
@@ -2841,7 +2849,7 @@ function openTeethMiniGame() {
     thSess.zones[z.id]=z.coverage; // G 실시간 동기화
     if(z.foamDots.length<80)z.foamDots.push({x:x+(Math.random()-0.5)*10,y:y+(Math.random()-0.5)*10,r:2+Math.random()*3.5,a:0.4+Math.random()*0.5});
     eventState.strokesSinceEvent++;
-    const minStr=80+eventState.calmCount*70;
+    const minStr=80;
     const hasMore=!eventState.forceUsed||!eventState.snackUsed||eventState.calmCount<4;
     if(hasMore&&eventState.strokesSinceEvent>minStr&&Math.random()<0.004)triggerEvent();
     const imp=ZONES.filter(z=>z.importance===2),avg=Math.round(imp.reduce((s,z)=>s+z.coverage,0)/imp.length);
