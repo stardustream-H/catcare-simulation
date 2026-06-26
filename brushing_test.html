@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>빗질 미니게임 테스트</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0d0d1c;
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  touch-action:none; user-select:none;
+}
+.wrap {
+  width:390px;
+  background:#13132a;
+  border-radius:20px;
+  overflow:hidden;
+  position:relative;
+}
+canvas { display:block; width:390px; }
+.exit-area {
+  display:flex; justify-content:center;
+  padding:12px 0 18px;
+}
+.exit-btn {
+  font-size:12px; color:#555;
+  padding:8px 24px;
+  border:1px solid #2a2a4a;
+  border-radius:20px;
+  background:transparent;
+  cursor:pointer;
+  letter-spacing:0.05em;
+}
+.exit-btn:active { color:#888; border-color:#444; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="c" width="390" height="580"></canvas>
+  <div class="exit-area">
+    <button class="exit-btn" id="exitBtn">빗질 끝내기</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 390, H = 580;
+
+// ── 레이아웃 ──
+const CAT_CY   = 185;   // 고양이 중심 Y
+const BRUSH_Y  = 430;   // 빗 영역 상단 Y
+
+// ────────────────────────────────
+//  고양이
+// ────────────────────────────────
+let hitPath = null;
+
+function buildHitPath() {
+  hitPath = new Path2D();
+  hitPath.ellipse(195, 185, 105, 70, 0, 0, Math.PI*2);   // 몸통
+  hitPath.ellipse(270, 88, 52, 50, -0.05, 0, Math.PI*2); // 머리
+  hitPath.ellipse(95, 190, 20, 55, 0.3, 0, Math.PI*2);   // 꼬리
+}
+
+function drawCat() {
+  const C = '#1e1c38', E = '#2e2a52';
+  ctx.save();
+
+  // 꼬리
+  ctx.beginPath();
+  ctx.moveTo(98,145);
+  ctx.bezierCurveTo(42,128, 36,198, 60,248);
+  ctx.bezierCurveTo(68,265, 90,263, 88,248);
+  ctx.bezierCurveTo(68,202, 62,138, 98,152);
+  ctx.closePath();
+  ctx.fillStyle=C; ctx.fill(); ctx.strokeStyle=E; ctx.lineWidth=1.5; ctx.stroke();
+
+  // 몸통
+  ctx.beginPath(); ctx.ellipse(195,185,105,70,0,0,Math.PI*2);
+  ctx.fillStyle=C; ctx.fill(); ctx.strokeStyle=E; ctx.lineWidth=1.5; ctx.stroke();
+
+  // 앞발
+  ctx.beginPath(); ctx.ellipse(238,248,24,11,0.1,0,Math.PI*2);
+  ctx.fillStyle='#1a1832'; ctx.fill(); ctx.strokeStyle=E; ctx.lineWidth=1; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(178,251,21,10,-0.05,0,Math.PI*2);
+  ctx.fillStyle='#1a1832'; ctx.fill(); ctx.strokeStyle=E; ctx.lineWidth=1; ctx.stroke();
+
+  // 머리
+  ctx.beginPath(); ctx.ellipse(270,88,52,50,-0.05,0,Math.PI*2);
+  ctx.fillStyle=C; ctx.fill(); ctx.strokeStyle=E; ctx.lineWidth=1.5; ctx.stroke();
+
+  // 귀 왼쪽
+  ctx.beginPath(); ctx.moveTo(234,52); ctx.lineTo(222,26); ctx.lineTo(252,42); ctx.closePath();
+  ctx.fillStyle=C; ctx.fill(); ctx.strokeStyle=E; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(235,50); ctx.lineTo(228,32); ctx.lineTo(248,42); ctx.closePath();
+  ctx.fillStyle='#2a1e3a'; ctx.fill();
+
+  // 귀 오른쪽
+  ctx.beginPath(); ctx.moveTo(292,44); ctx.lineTo(308,18); ctx.lineTo(318,46); ctx.closePath();
+  ctx.fillStyle=C; ctx.fill(); ctx.strokeStyle=E; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(294,44); ctx.lineTo(307,24); ctx.lineTo(315,45); ctx.closePath();
+  ctx.fillStyle='#2a1e3a'; ctx.fill();
+
+  // 눈
+  [[252,84],[282,82]].forEach(([ex,ey])=>{
+    ctx.beginPath(); ctx.ellipse(ex,ey,7,8,0,0,Math.PI*2);
+    ctx.fillStyle='#606080'; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ex,ey,3.5,5.5,0,0,Math.PI*2);
+    ctx.fillStyle='#111'; ctx.fill();
+  });
+
+  // 코
+  ctx.beginPath(); ctx.moveTo(268,106); ctx.lineTo(263,112); ctx.lineTo(273,112); ctx.closePath();
+  ctx.fillStyle='#c87090'; ctx.fill();
+
+  // 수염
+  ctx.strokeStyle='rgba(255,255,255,0.2)'; ctx.lineWidth=0.8;
+  [[248,108,220,105],[245,111,218,111],[246,115,220,118]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+  [[288,108,314,103],[288,111,315,111],[288,115,313,118]].forEach(([x1,y1,x2,y2])=>{
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+
+  ctx.restore();
+}
+
+// 고양이 표면 겉털 (빗질하면 점점 사라짐)
+let surfaceFur = [];
+function initSurfaceFur() {
+  surfaceFur = [];
+  [{cx:195,cy:185,rx:96,ry:62},{cx:270,cy:88,rx:44,ry:42}].forEach(({cx,cy,rx,ry})=>{
+    for(let i=0;i<100;i++){
+      const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random());
+      surfaceFur.push({
+        x: cx+rx*r*Math.cos(a), y: cy+ry*r*Math.sin(a),
+        ang: Math.random()*Math.PI,
+        len: 5+Math.random()*8,
+        g: 140+Math.floor(Math.random()*80),
+        alpha: 0.4+Math.random()*0.3,
+      });
+    }
+  });
+}
+
+let groomProgress = 0; // 0~1
+
+function drawSurfaceFur() {
+  const fade = Math.max(0, 1 - groomProgress * 1.8);
+  if(fade <= 0) return;
+  ctx.save(); ctx.lineCap='round';
+  surfaceFur.forEach(f=>{
+    ctx.globalAlpha = f.alpha * fade;
+    ctx.strokeStyle = `rgb(${f.g},${f.g},${f.g})`;
+    ctx.lineWidth = 1;
+    const dx=Math.cos(f.ang)*f.len*.5, dy=Math.sin(f.ang)*f.len*.5;
+    ctx.beginPath(); ctx.moveTo(f.x-dx,f.y-dy); ctx.lineTo(f.x+dx,f.y+dy); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+// ────────────────────────────────
+//  빗 (브러시)
+// ────────────────────────────────
+const BRUSH_MAX    = 60;   // 최대 털 적재량
+const BRUSH_CX     = 195;  // 빗 중심 X
+const BRUSH_HX     = BRUSH_Y + 55;  // 빗 중심 Y
+
+let brushFur       = 0;    // 현재 쌓인 털 양 (0~BRUSH_MAX)
+let totalStrokes   = 0;    // 총 빗질 횟수
+let cleanAnim      = 0;    // 털 털기 애니메이션 (0~1)
+let cleanParticles = [];   // 털기 파티클
+let isFull         = false; // 빗이 가득 찼는지
+
+// 빗 영역 히트박스 (빗 머리 부분만)
+function isOnBrush(x, y) {
+  return x > BRUSH_CX-80 && x < BRUSH_CX+80 && y > BRUSH_HX-38 && y < BRUSH_HX+42;
+}
+
+function drawBrush() {
+  ctx.save();
+  const cx = BRUSH_CX, cy = BRUSH_HX;
+  const furRatio = brushFur / BRUSH_MAX;
+
+  // ── 배경 구분선 ──
+  ctx.strokeStyle = '#1e1c3a'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(20, BRUSH_Y); ctx.lineTo(370, BRUSH_Y); ctx.stroke();
+
+  // ── 빗 손잡이 ──
+  ctx.beginPath();
+  roundRect(ctx, cx+62, cy-9, 100, 18, 6);
+  ctx.fillStyle = '#4a3018'; ctx.fill();
+  ctx.strokeStyle = '#6a4828'; ctx.lineWidth = 1; ctx.stroke();
+  // 손잡이 광택
+  ctx.beginPath(); roundRect(ctx, cx+68, cy-5, 88, 4, 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.07)'; ctx.fill();
+
+  // ── 빗 머리 (패드) ──
+  ctx.beginPath();
+  roundRect(ctx, cx-78, cy-22, 148, 44, 8);
+  // 가득 찼으면 약간 붉게
+  if(isFull) {
+    ctx.fillStyle = '#2e1e28';
+  } else {
+    ctx.fillStyle = '#1e1828';
+  }
+  ctx.fill();
+  ctx.strokeStyle = isFull ? '#6a2a4a' : '#2e2848';
+  ctx.lineWidth = 1.5; ctx.stroke();
+
+  // ── 빗살 ──
+  const bristleCount = 14;
+  const bristleSpacing = 136 / (bristleCount + 1);
+  ctx.lineCap = 'round';
+  for(let i = 0; i < bristleCount; i++) {
+    const bx = cx - 68 + bristleSpacing * (i + 1);
+    const by1 = cy + 22;
+    const by2 = cy + 40;
+    const opacity = Math.max(0.15, 1 - furRatio * 0.7);
+    ctx.globalAlpha = opacity;
+    ctx.strokeStyle = '#8878a8';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(bx, by1); ctx.lineTo(bx, by2); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // ── 빗에 쌓인 털 ──
+  if(brushFur > 0) {
+    const strands = Math.floor(furRatio * 120);
+    ctx.lineCap = 'round';
+    // seed 기반으로 매 프레임 동일한 위치 (cleanAnim 없을 때)
+    const rng = mulberry32(42);
+    for(let i = 0; i < strands; i++) {
+      const fx = cx - 72 + rng() * 140;
+      const fy = cy + 18 + rng() * 26;
+      // 털이 많아질수록 빗살 위로 솟아오름
+      const lift = furRatio * 20;
+      const actualY = fy - lift * rng();
+      const ang = rng() * Math.PI * 0.7 + Math.PI * 0.15;
+      const len = 8 + rng() * 14;
+      const g = 150 + Math.floor(rng() * 85);
+      ctx.globalAlpha = 0.5 + rng() * 0.3;
+      ctx.strokeStyle = `rgb(${g},${g},${g})`;
+      ctx.lineWidth = 1.1;
+      const dx = Math.cos(ang)*len*.5, dy = Math.sin(ang)*len*.5;
+      ctx.beginPath();
+      ctx.moveTo(fx-dx, actualY-dy);
+      ctx.lineTo(fx+dx, actualY+dy);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // ── 가득 찼을 때 pulse 힌트 ──
+  if(isFull) {
+    const pulse = 0.3 + 0.2 * Math.sin(Date.now() / 300);
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#ff6090';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    roundRect(ctx, cx-82, cy-26, 156, 52, 10);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ── 털 털기 파티클 ──
+  drawCleanParticles();
+
+  ctx.restore();
+}
+
+// ── 간단한 시드 랜덤 (매 프레임 일관된 렌더링) ──
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y); ctx.arcTo(x+w, y, x+w, y+r, r);
+  ctx.lineTo(x+w, y+h-r); ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+  ctx.lineTo(x+r, y+h); ctx.arcTo(x, y+h, x, y+h-r, r);
+  ctx.lineTo(x, y+r); ctx.arcTo(x, y, x+r, y, r);
+  ctx.closePath();
+}
+
+// ── 털 털기 파티클 ──
+function triggerClean() {
+  if(brushFur === 0) return;
+  const amt = brushFur;
+  brushFur = 0;
+  isFull = false;
+  // 파티클 생성
+  for(let i=0; i<Math.min(amt*2, 40); i++){
+    const sx = BRUSH_CX + (Math.random()-0.5)*130;
+    const sy = BRUSH_HX + 20 + Math.random()*20;
+    const ang = -Math.PI*0.5 + (Math.random()-0.5)*Math.PI*0.8;
+    cleanParticles.push({
+      x:sx, y:sy,
+      vx: Math.cos(ang)*(1+Math.random()*3),
+      vy: Math.sin(ang)*(2+Math.random()*3) - 1,
+      life:1.0, decay:0.025+Math.random()*0.02,
+      len:6+Math.random()*10,
+      ang:Math.random()*Math.PI,
+      g:155+Math.floor(Math.random()*80),
+    });
+  }
+}
+
+function drawCleanParticles() {
+  ctx.save(); ctx.lineCap='round';
+  for(let i=cleanParticles.length-1; i>=0; i--){
+    const p = cleanParticles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.2; p.life -= p.decay;
+    if(p.life <= 0){ cleanParticles.splice(i,1); continue; }
+    ctx.globalAlpha = p.life * 0.75;
+    ctx.strokeStyle = `rgb(${p.g},${p.g},${p.g})`;
+    ctx.lineWidth = 1.1;
+    const dx=Math.cos(p.ang)*p.len*.5, dy=Math.sin(p.ang)*p.len*.5;
+    ctx.beginPath(); ctx.moveTo(p.x-dx,p.y-dy); ctx.lineTo(p.x+dx,p.y+dy); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ────────────────────────────────
+//  빗질 로직
+// ────────────────────────────────
+let isDragging = false;
+let lastX = -1, lastY = -1;
+
+function furPerStroke() {
+  // 처음엔 많이, 갈수록 줄어들지만 최소 1
+  return Math.max(1, Math.round(4 - totalStrokes * 0.015));
+}
+
+function handleBrush(x, y) {
+  if(!ctx.isPointInPath(hitPath, x, y)) return;
+  if(isFull) return; // 빗 가득 찼으면 빗질 불가
+
+  const dist = Math.hypot(x-lastX, y-lastY);
+  if(dist < 8 && lastX !== -1) return;
+  lastX = x; lastY = y;
+
+  const add = furPerStroke();
+  brushFur = Math.min(BRUSH_MAX, brushFur + add);
+  totalStrokes++;
+  groomProgress = Math.min(1, totalStrokes / 100);
+
+  if(brushFur >= BRUSH_MAX) isFull = true;
+}
+
+// ────────────────────────────────
+//  렌더 루프
+// ────────────────────────────────
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  drawCat();
+  drawSurfaceFur();
+  drawBrush();
+  requestAnimationFrame(render);
+}
+
+// ────────────────────────────────
+//  이벤트
+// ────────────────────────────────
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const sx = W/rect.width, sy = H/rect.height;
+  const pt = e.touches ? e.touches[0] : e;
+  return { x:(pt.clientX-rect.left)*sx, y:(pt.clientY-rect.top)*sy };
+}
+
+canvas.addEventListener('pointerdown', e=>{
+  const {x,y} = getPos(e);
+  // 빗 머리 탭 → 털 털기
+  if(isOnBrush(x,y)){
+    triggerClean();
+    e.preventDefault(); return;
+  }
+  // 고양이 빗질 시작
+  isDragging=true; lastX=lastY=-1;
+  handleBrush(x,y);
+  e.preventDefault();
+}, {passive:false});
+
+canvas.addEventListener('pointermove', e=>{
+  if(!isDragging) return;
+  const {x,y} = getPos(e);
+  handleBrush(x,y);
+  e.preventDefault();
+}, {passive:false});
+
+window.addEventListener('pointerup', ()=>{ isDragging=false; });
+
+document.getElementById('exitBtn').addEventListener('click', ()=>{
+  // 메인 UI 연결 시 finishGroomGame() 호출 예정
+  alert(`빗질 완료\n총 스트로크: ${totalStrokes}회\n빗 청소 횟수: 확인 예정`);
+});
+
+// ────────────────────────────────
+//  초기화
+// ────────────────────────────────
+buildHitPath();
+initSurfaceFur();
+render();
+</script>
+</body>
+</html>

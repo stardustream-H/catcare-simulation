@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>놀이 미니게임 테스트</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0d0d1c;
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  touch-action:none; user-select:none;
+}
+.wrap {
+  width:390px; background:#13132a; border-radius:20px;
+  overflow:hidden; position:relative;
+}
+canvas { display:block; width:390px; }
+
+/* 하단 UI */
+.bottom-ui {
+  padding:10px 20px 16px;
+  display:flex; align-items:center; gap:8px;
+}
+.lure-btn {
+  font-size:11px; color:#888; padding:7px 14px;
+  border:1px solid #2a2a4a; border-radius:20px;
+  background:transparent; cursor:pointer;
+}
+.help-btn {
+  font-size:11px; color:#555; width:28px; height:28px;
+  border:1px solid #2a2a4a; border-radius:50%;
+  background:transparent; cursor:pointer; flex-shrink:0;
+}
+.exit-btn {
+  font-size:11px; color:#444; padding:7px 14px;
+  border:1px solid #222240; border-radius:20px;
+  background:transparent; cursor:pointer; margin-left:auto;
+}
+
+/* 튜토리얼 오버레이 */
+.tut-overlay {
+  position:absolute; top:0; left:0; width:390px; height:520px;
+  background:rgba(10,8,22,0.9);
+  display:flex; align-items:center; justify-content:center;
+  z-index:20;
+}
+.tut-overlay.hidden { display:none; }
+.tut-box {
+  width:310px; background:#1a1a38; border:1px solid #2a2a50;
+  border-radius:16px; padding:24px 22px;
+}
+.tut-title {
+  color:rgba(255,255,255,0.75); font-size:14px; font-weight:600;
+  text-align:center; margin-bottom:18px;
+}
+.tut-body {
+  color:rgba(255,255,255,0.42); font-size:11.5px; line-height:1.85;
+}
+.tut-body li { margin-bottom:5px; list-style:none; padding-left:1em; text-indent:-1em; }
+.tut-body li::before { content:'· '; color:rgba(200,168,130,0.5); }
+.tut-hl { color:rgba(200,168,130,0.75); }
+.tut-close {
+  display:block; width:100%; margin-top:20px; padding:10px;
+  background:rgba(200,168,130,0.1); border:1px solid rgba(200,168,130,0.2);
+  color:rgba(200,168,130,0.65); border-radius:10px;
+  cursor:pointer; font-size:12px; font-family:inherit;
+}
+
+/* 미끼 패널 */
+.lure-panel {
+  position:absolute; bottom:52px; left:0; right:0;
+  background:#161630; border-top:1px solid #252545;
+  padding:14px 18px 18px; z-index:10;
+  transition: transform .18s ease;
+}
+.lure-panel.hidden { display:none; }
+.lure-panel-title { color:rgba(255,255,255,0.25); font-size:10px; margin-bottom:12px; }
+.lure-grid { display:flex; gap:8px; justify-content:center; }
+.lure-item {
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  padding:10px 0; width:62px; border-radius:12px; cursor:pointer;
+  border:1px solid #252545;
+}
+.lure-item.selected {
+  border-color:rgba(200,168,130,0.4);
+  background:rgba(200,168,130,0.07);
+}
+.lure-emoji { font-size:22px; line-height:1; }
+.lure-name  { font-size:9.5px; color:rgba(255,255,255,0.35); text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="c" width="390" height="520"></canvas>
+
+  <!-- 튜토리얼 -->
+  <div id="tutorial" class="tut-overlay hidden">
+    <div class="tut-box">
+      <div class="tut-title">🎣 낚싯대 놀이</div>
+      <ul class="tut-body">
+        <li>장난감을 <span class="tut-hl">드래그</span>해서 고양이의 관심을 끌어보세요.</li>
+        <li>고양이가 충분히 반응하면 본격적인 놀이가 시작됩니다.</li>
+        <li>너무 빠르거나 가만히 있으면 흥미를 잃어요.</li>
+        <li>놀이 중 <span class="tut-hl">마지막엔 꼭 잡히게</span> 해줘야 고양이가 만족해요.</li>
+        <li>미끼 종류를 바꿔가며 반응을 살펴보세요.</li>
+      </ul>
+      <button class="tut-close" id="tutClose">알겠어요</button>
+    </div>
+  </div>
+
+  <!-- 포획 팝업 -->
+  <div id="caughtPopup" class="tut-overlay hidden">
+    <div class="tut-box" style="text-align:center;">
+      <div style="font-size:42px;margin-bottom:12px;">😸</div>
+      <div class="tut-title" style="margin-bottom:10px;">잡았다!</div>
+      <div class="tut-body" style="text-align:center; margin-bottom:4px;">포획 <span id="caughtCount">0</span>회 · 만족도 <span id="caughtSat">0</span>%</div>
+      <button class="tut-close" id="caughtConfirm">다시 놀기</button>
+    </div>
+  </div>
+
+  <!-- 흥미 소진 팝업 -->
+  <div id="boredPopup" class="tut-overlay hidden">
+    <div class="tut-box" style="text-align:center;">
+      <div style="font-size:36px;margin-bottom:14px;">😾</div>
+      <div class="tut-title" style="margin-bottom:10px;">고양이가 흥미를 잃었어요</div>
+      <div class="tut-body" style="text-align:center; margin-bottom:4px;">미끼를 바꾸거나<br>다시 관심을 끌어보세요</div>
+      <button class="tut-close" id="boredConfirm">다시 시도</button>
+    </div>
+  </div>
+
+  <!-- 미끼 선택 패널 -->
+  <div id="lureMenu" class="lure-panel hidden">
+    <div class="lure-panel-title">미끼 선택</div>
+    <div class="lure-grid" id="lureGrid"></div>
+  </div>
+
+  <div class="bottom-ui">
+    <button class="lure-btn" id="lureBtn">🪶 미끼</button>
+    <button class="help-btn" id="helpBtn" title="도움말">?</button>
+    <button class="exit-btn" id="exitBtn">놀이 끝내기</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  기본 설정
+// ═══════════════════════════════════════════════
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 390, H = 520;
+const CAT_X = 195, CAT_Y = 400;
+const CATCH_R = 55;
+const TUTORIAL_KEY = 'play_test_tutorial_v1';
+
+// ═══════════════════════════════════════════════
+//  미끼 정의
+// ═══════════════════════════════════════════════
+const LURES = [
+  {id:'feather', name:'깃털',     emoji:'🪶'},
+  {id:'mouse',   name:'생쥐 인형', emoji:'🐭'},
+  {id:'bell',    name:'방울',     emoji:'🔔'},
+  {id:'foil',    name:'은박 볼',  emoji:'💿'},
+  {id:'yarn',    name:'털실',     emoji:'🧶'},
+];
+
+// 고양이별 미끼 선호도 (숨김 — 플레이어가 직접 파악해야 함)
+const catPref = {};
+LURES.forEach(l => { catPref[l.id] = 0.5 + Math.random(); });  // 0.5 ~ 1.5
+
+let currentLure = 'feather';
+const lureTried = {};  // 이번 세션 사용 여부
+LURES.forEach(l => { lureTried[l.id] = false; });
+lureTried['feather'] = true;
+
+// ═══════════════════════════════════════════════
+//  놀이 욕구 시스템 (내부, 사용자에게 숨김)
+// ═══════════════════════════════════════════════
+const PER_CATCH_MAX = 40;
+// 프로토타입: 200~560 중 40 단위 랜덤 (고양이 상태·성격에 따라 달라지는 값 시뮬레이션)
+const playNeed = [200, 280, 360, 400, 480, 560][Math.floor(Math.random()*6)];
+let playFilled = 0;  // 세션 내 누적 채운 양 (리셋 없이 계속 누적)
+
+// ═══════════════════════════════════════════════
+//  게임 상태
+// ═══════════════════════════════════════════════
+let gamePhase = 'attract';
+let attractHadFirstPlay = false;
+
+// — attract 단계 —
+let attractEng = 0;
+let catAttractState = 'sleeping';
+let transTimer = 0;
+
+// — play 단계 —
+let interest    = 0;
+let engagement  = 0;
+let catchCount  = 0;
+let lastWasCatch= false;
+let catState    = 'idle';
+let catchTimer  = 0;
+let catchZoneTimer = 0;
+let pounceAnim  = 0;
+
+// — 장난감 —
+let toyX = W/2, toyY = 200;
+let prevX = toyX, prevY = toyY;
+let toySpeed  = 0;
+let toyVisible= false;   // 플레이어가 처음 드래그하면 true
+let isDragging= false;
+
+// ═══════════════════════════════════════════════
+//  업데이트
+// ═══════════════════════════════════════════════
+function update() {
+  toySpeed = Math.hypot(toyX-prevX, toyY-prevY);
+  prevX = toyX; prevY = toyY;
+
+  if     (gamePhase==='attract')       updateAttract();
+  else if(gamePhase==='transitioning') updateTransition();
+  else if(gamePhase==='play')          updatePlay();
+  // 'bored' / 'caught_popup' / 'done' 상태엔 업데이트 없음
+}
+
+function updateAttract() {
+  if(!toyVisible) {
+    catAttractState = attractHadFirstPlay ? 'idle' : 'sleeping';
+    return;
+  }
+
+  const pref = catPref[currentLure];
+  const dist = Math.hypot(toyX-CAT_X, toyY-CAT_Y);
+  const near = dist < 200;
+
+  const speedScore = toySpeed < 0.5 ? -0.5
+                   : toySpeed < 3   ?  0.3 * pref
+                   : toySpeed < 15  ?  0.6 * pref
+                   :                   0.05;
+  const distMult = near ? 1.0 : 0.35;
+  // 재유도 시: 흥미가 낮으면 반응도 느려짐
+  const interestMult = attractHadFirstPlay ? Math.max(0.4, interest / 100) : 1.0;
+
+  attractEng = Math.max(0, Math.min(100,
+    attractEng + (speedScore * distMult * interestMult) - 0.07
+  ));
+
+  // 첫 유도: sleeping에서 시작, 재유도: idle에서 시작
+  if(attractHadFirstPlay) {
+    if     (attractEng < 15)  catAttractState = 'idle';
+    else if(attractEng < 42)  catAttractState = 'noticing';
+    else                      catAttractState = 'watching';
+  } else {
+    if     (attractEng < 10)  catAttractState = 'sleeping';
+    else if(attractEng < 28)  catAttractState = 'idle';
+    else if(attractEng < 50)  catAttractState = 'noticing';
+    else                      catAttractState = 'watching';
+  }
+
+  // 임계값 도달 → 본 게임 전환
+  const threshold = attractHadFirstPlay ? 52 : 60;
+  if(attractEng >= threshold && toySpeed > 0.5) {
+    gamePhase  = 'transitioning';
+    transTimer = 75;
+    // 첫 시작만 흥미도 설정 (이후는 기존 값 유지)
+    if(!attractHadFirstPlay) {
+      interest = 58 + pref * 22;
+    }
+  }
+}
+
+function updateTransition() {
+  transTimer--;
+  if(transTimer <= 0) {
+    gamePhase           = 'play';
+    attractHadFirstPlay = true;
+    catState            = 'watching';
+    engagement          = 25;
+    attractEng          = 0;
+    // 매 라운드 흥미도 리셋 (선호도 기반)
+    const pref = catPref[currentLure];
+    interest = 58 + pref * 22;
+  }
+}
+
+function updatePlay() {
+  if(catState==='caught') {
+    catchTimer--;
+    if(catchTimer<=0) showCaughtPopup();
+    return;
+  }
+
+  // 흥미 소진 → 팝업 표시 후 초기 상태로 리셋
+  if(interest <= 0) {
+    showBoredPopup();
+    return;
+  }
+
+  const pref = catPref[currentLure];
+  const dist = Math.hypot(toyX-CAT_X, toyY-CAT_Y);
+  const near = dist < CATCH_R;
+  const mid  = dist < 170;
+
+  // 흥미도: 선호도(pref)가 난이도를 자연스럽게 조절
+  if(toySpeed < 0.8) {
+    // 정지: 선호 미끼면 천천히, 비선호면 빠르게 감소
+    interest = Math.max(0, interest - 0.15 / pref);
+  } else if(toySpeed > 15) {
+    // 너무 빠름: 고양이가 못 따라감, 고정 감소
+    interest = Math.max(0, interest - 0.04);
+  } else if(mid) {
+    // 근거리 + 적당한 속도: pref에 따라 증가 or 유지
+    // pref=1.0 → +0.09, pref=0.5 → +0.015, pref=1.5 → +0.165
+    interest = Math.max(0, Math.min(100, interest + 0.15*pref - 0.06));
+  } else {
+    // 원거리 + 움직임: 고선호만 유지, 대부분 소폭 감소
+    // pref=1.0 → -0.02, pref=0.5 → -0.04, pref=1.5 → +0.00
+    interest = Math.max(0, Math.min(100, interest + 0.04*pref - 0.06));
+  }
+
+  // 참여도: 이번 라운드 누적 활동량, 올라가기만 함
+  // 단, 흥미도가 30 이상(고양이가 실제 반응 중)일 때만 쌓임
+  if(interest >= 30) {
+    const speedGain = toySpeed < 0.8 ?  0       // 정지: 증가 없음
+                    : toySpeed < 3   ?  0.06     // 느린 움직임
+                    : toySpeed < 14  ?  0.22     // 적당한 속도
+                    :                   0.02;    // 너무 빠름
+    const distBonus = mid ? 1.0 : 0.25;
+    engagement = Math.min(100, engagement + speedGain * distBonus);
+  }
+
+  // 고양이 상태 전환: 흥미도 기준
+  if     (interest < 20)  catState = 'idle';
+  else if(interest < 45)  catState = 'watching';
+  else if(interest < 72)  catState = 'stalking';
+  else                    catState = near ? 'pouncing' : 'stalking';
+
+  // 포획존 판정: 흥미도 기준 (참여도 무관)
+  const readyToCatch = near && (catState==='pouncing'||catState==='stalking') && interest>=45;
+  if(readyToCatch) {
+    catchZoneTimer++;
+    if(catchZoneTimer >= 28) triggerCatch();
+  } else {
+    catchZoneTimer = 0;
+  }
+}
+
+function triggerCatch() {
+  if(catState==='caught') return;
+
+  // 참여도 비례로 PER_CATCH_MAX까지 채움 (engagement 100% = 40, 0% = 0)
+  const gain = Math.round((engagement / 100) * PER_CATCH_MAX);
+  playFilled = Math.min(playNeed, playFilled + gain);
+  catchCount++;
+  lastWasCatch = true;
+
+  const decay = 6 + catchCount * 3;
+  interest = Math.max(0, interest - decay);
+
+  catState = 'caught';
+  catchTimer = 65;
+  pounceAnim = 1.0;
+  catchZoneTimer = 0;
+  engagement = 0;   // 다음 라운드를 위해 리셋
+}
+
+// ═══════════════════════════════════════════════
+//  렌더링
+// ═══════════════════════════════════════════════
+function render() {
+  update();
+
+  // 배경
+  ctx.fillStyle='#13132a'; ctx.fillRect(0,0,W,H);
+  const grad=ctx.createLinearGradient(0,300,0,H);
+  grad.addColorStop(0,'rgba(0,0,0,0)');
+  grad.addColorStop(1,'rgba(0,0,0,0.35)');
+  ctx.fillStyle=grad; ctx.fillRect(0,300,W,H-300);
+
+  if(gamePhase==='attract' || gamePhase==='transitioning') {
+    drawToy();
+    drawCatAttract();
+    if(attractHadFirstPlay) drawInterestBarOnly();  // 재유도 중엔 흥미도만 표시
+    if(gamePhase==='transitioning') drawTransitionFx();
+  } else if(gamePhase==='play') {
+    drawToy();
+    drawCatPlay();
+    drawBars();
+  } else if(gamePhase==='done') {
+    drawToy();
+    drawCatPlay();
+    drawBars();
+    drawDone();
+  }
+
+  requestAnimationFrame(render);
+}
+
+// ── 장난감 ──
+function drawToy() {
+  if(!toyVisible) return;
+  ctx.save();
+  ctx.translate(toyX, toyY);
+
+  // 줄
+  ctx.beginPath();
+  ctx.moveTo(0,0); ctx.lineTo(0,14);
+  ctx.strokeStyle='rgba(200,180,140,0.5)'; ctx.lineWidth=1.2; ctx.stroke();
+
+  // 미끼 이모지
+  const flutter = toySpeed > 1 ? Math.sin(Date.now()/80)*4 : 0;
+  ctx.rotate(flutter * 0.04);
+  ctx.font='22px serif';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  const lure=LURES.find(l=>l.id===currentLure);
+  ctx.fillText(lure.emoji, 0, 14);
+
+  ctx.restore();
+}
+
+// ── 유도 단계 고양이 ──
+const ATTRACT_EMOJI = { sleeping:'😴', idle:'😺', noticing:'🙀', watching:'👀' };
+const ATTRACT_MSG   = { sleeping:'자고 있어요', idle:'무관심해요', noticing:'뭔가 보이는 것 같은데...', watching:'관심을 보이고 있어요!' };
+
+function drawCatAttract() {
+  ctx.save();
+  ctx.font='52px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(ATTRACT_EMOJI[catAttractState]||'😴', CAT_X, CAT_Y);
+  ctx.restore();
+
+  const alpha = catAttractState==='sleeping'||catAttractState==='idle' ? 0.18 : 0.48;
+  ctx.fillStyle=`rgba(255,255,255,${alpha})`;
+  ctx.font='10px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText(ATTRACT_MSG[catAttractState]||'', CAT_X, CAT_Y+34);
+
+  // 첫 시작 안내만 표시 (재유도 시에는 표시 안 함)
+  if(!toyVisible && !attractHadFirstPlay) {
+    ctx.fillStyle='rgba(255,255,255,0.14)';
+    ctx.font='11px Apple SD Gothic Neo,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('화면을 드래그해보세요', W/2, 80);
+  }
+}
+
+// ── 전환 연출 ──
+function drawTransitionFx() {
+  // 은은한 플래시
+  const alpha = (transTimer / 90) * 0.18;
+  ctx.fillStyle=`rgba(200,168,130,${alpha})`;
+  ctx.fillRect(0,0,W,H);
+
+  if(transTimer > 55) {
+    const textAlpha = Math.min(1,(transTimer-55)/15)*0.75;
+    ctx.fillStyle=`rgba(255,255,255,${textAlpha})`;
+    ctx.font='bold 14px Apple SD Gothic Neo,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('관심을 보입니다!', W/2, CAT_Y-80);
+  }
+}
+
+// ── 놀이 단계 고양이 ──
+const CAT_EMOJI = { idle:'😺', watching:'👀', stalking:'🐈', pouncing:'⚡', caught:'😸', resting:'😴' };
+const CAT_MSG   = { idle:'무관심', watching:'눈으로 따라가는 중', stalking:'사냥 준비 중...', pouncing:'잡으러 간다!', caught:'잡았다!', resting:'잠깐 쉬는 중' };
+
+function drawCatPlay() {
+  // 포획존 하이라이트
+  if(catState==='stalking'||catState==='pouncing') {
+    const pulse = 0.10 + 0.06*Math.sin(Date.now()/200);
+    ctx.beginPath();
+    ctx.arc(CAT_X, CAT_Y, CATCH_R, 0, Math.PI*2);
+    ctx.fillStyle=`rgba(200,168,130,${pulse})`;
+    ctx.fill();
+  }
+
+  ctx.save();
+  if(pounceAnim>0) {
+    const sc=1+pounceAnim*0.12;
+    ctx.translate(CAT_X,CAT_Y); ctx.scale(sc,sc); ctx.translate(-CAT_X,-CAT_Y);
+    pounceAnim=Math.max(0,pounceAnim-0.05);
+  }
+  ctx.font='52px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(CAT_EMOJI[catState]||'😺', CAT_X, CAT_Y);
+  ctx.restore();
+
+  const alpha = catState==='idle'?0.18:0.4;
+  ctx.fillStyle=`rgba(255,255,255,${alpha})`;
+  ctx.font='10px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  ctx.fillText(CAT_MSG[catState]||'', CAT_X, CAT_Y+34);
+}
+
+// ── 흥미도 바만 (재유도 중) ──
+function drawInterestBarOnly() {
+  const BX=16, BW=W-32, BH=6, BR=3;
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.beginPath(); ctx.roundRect(BX,14,BW,BH,BR); ctx.fill();
+  const iw=(interest/100)*BW;
+  const ic=interest>60?'#7ac8a0':interest>30?'#c8a870':'#c85868';
+  ctx.fillStyle=ic;
+  ctx.beginPath(); ctx.roundRect(BX,14,iw,BH,BR); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.18)';
+  ctx.font='9px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('흥미', BX, 24);
+
+  // 포획 횟수 + 현재 만족도
+  const pct = Math.min(100, Math.round(playFilled/playNeed*100));
+  ctx.fillStyle='rgba(255,255,255,0.14)';
+  ctx.font='9px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='right'; ctx.textBaseline='top';
+  ctx.fillText(`포획 ${catchCount}회 · ${pct}%`, W-16, 24);
+}
+
+// ── 상태 바 (play 단계만) ──
+function drawBars() {
+  const BX=16, BW=W-32, BH=6, BR=3;
+
+  // 흥미도
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.beginPath(); ctx.roundRect(BX,14,BW,BH,BR); ctx.fill();
+  const iw=(interest/100)*BW;
+  const ic=interest>60?'#7ac8a0':interest>30?'#c8a870':'#c85868';
+  ctx.fillStyle=ic;
+  ctx.beginPath(); ctx.roundRect(BX,14,iw,BH,BR); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.18)';
+  ctx.font='9px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('흥미', BX, 24);
+
+  // 참여도
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.beginPath(); ctx.roundRect(BX,26,BW,BH,BR); ctx.fill();
+  const ew=(engagement/100)*BW;
+  ctx.fillStyle='rgba(130,180,255,0.65)';
+  ctx.beginPath(); ctx.roundRect(BX,26,ew,BH,BR); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.18)';
+  ctx.fillText('참여', BX, 36);
+
+  // 만족도 + 포획 횟수 (우하단)
+  const satPct = Math.min(100, Math.round(playFilled / playNeed * 100));
+  const sx=W-104, sy=H-72, sw=88, sh=5;
+  ctx.fillStyle='rgba(255,255,255,0.05)';
+  ctx.beginPath(); ctx.roundRect(sx,sy,sw,sh,2); ctx.fill();
+  // 채워지기만 하는 바
+  const satCol = satPct >= 100 ? '#a0e8a0' : satPct >= 60 ? '#c8d890' : 'rgba(200,168,130,0.65)';
+  ctx.fillStyle=satCol;
+  ctx.beginPath(); ctx.roundRect(sx,sy,(satPct/100)*sw,sh,2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.22)';
+  ctx.font='9px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='right'; ctx.textBaseline='bottom';
+  ctx.fillText(`만족도 ${satPct}%`, sx+sw, sy-2);
+  ctx.fillStyle='rgba(255,255,255,0.16)';
+  ctx.textAlign='left';
+  ctx.fillText(`포획 ${catchCount}회`, BX, sy);
+}
+
+// ── 완료 오버레이 (플레이어가 직접 끝낼 때만) ──
+function drawDone() {
+  ctx.fillStyle='rgba(10,8,22,0.82)';
+  ctx.fillRect(0,0,W,H);
+
+  const satPct   = Math.min(100, Math.round(playFilled/playNeed*100));
+  const finalSat = lastWasCatch ? satPct : Math.round(satPct*0.7);
+
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('놀이 종료', W/2, H/2-22);
+
+  if(!lastWasCatch && catchCount > 0) {
+    ctx.fillStyle='rgba(200,160,80,0.5)';
+    ctx.font='11px Apple SD Gothic Neo,sans-serif';
+    ctx.fillText('마지막에 잡히게 해줬다면 더 좋았을 텐데요', W/2, H/2+8);
+  }
+
+  ctx.fillStyle='rgba(200,168,130,0.5)';
+  ctx.font='12px Apple SD Gothic Neo,sans-serif';
+  ctx.fillText(`만족도 ${finalSat}%  ·  포획 ${catchCount}회`, W/2, H/2+36);
+}
+
+// ═══════════════════════════════════════════════
+//  입력 처리
+// ═══════════════════════════════════════════════
+function getPos(e) {
+  const r=canvas.getBoundingClientRect();
+  const sx=W/r.width, sy=H/r.height;
+  const pt=e.touches?e.touches[0]:e;
+  return {x:(pt.clientX-r.left)*sx, y:(pt.clientY-r.top)*sy};
+}
+
+canvas.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  if(gamePhase==='done') return;
+  // 미끼 메뉴 열려있으면 닫기
+  closeLureMenu();
+  isDragging=true;
+  toyVisible=true;
+  const {x,y}=getPos(e);
+  toyX=x; toyY=y;
+},{passive:false});
+
+canvas.addEventListener('pointermove', e=>{
+  if(!isDragging||gamePhase==='done') return;
+  e.preventDefault();
+  const {x,y}=getPos(e);
+  toyX=x;
+  toyY=Math.min(y, H-90);
+},{passive:false});
+
+window.addEventListener('pointerup',()=>{ isDragging=false; });
+
+// ═══════════════════════════════════════════════
+//  흥미 소진 팝업
+// ═══════════════════════════════════════════════
+function showCaughtPopup() {
+  gamePhase = 'caught_popup';
+  document.getElementById('caughtCount').textContent = catchCount;
+  document.getElementById('caughtSat').textContent   = Math.min(100, Math.round(playFilled/playNeed*100));
+  document.getElementById('caughtPopup').classList.remove('hidden');
+}
+
+function showBoredPopup() {
+  // 게임 루프가 계속 돌지 않도록 임시 중단 상태
+  gamePhase = 'bored';
+  document.getElementById('boredPopup').classList.remove('hidden');
+}
+
+function resetToInitial() {
+  // 완전히 처음 attract 상태로 리셋
+  gamePhase           = 'attract';
+  attractHadFirstPlay = false;
+  attractEng          = 0;
+  catAttractState     = 'sleeping';
+  catState            = 'idle';
+  engagement          = 0;
+  interest            = 0;
+  toyVisible          = false;
+  // catchCount, satisfaction, lastWasCatch는 세션 누적이므로 유지
+}
+
+document.getElementById('caughtConfirm').addEventListener('click', () => {
+  document.getElementById('caughtPopup').classList.add('hidden');
+  resetToInitial();
+});
+
+document.getElementById('boredConfirm').addEventListener('click', () => {
+  document.getElementById('boredPopup').classList.add('hidden');
+  resetToInitial();
+});
+
+// ═══════════════════════════════════════════════
+//  미끼 UI
+// ═══════════════════════════════════════════════
+function renderLureGrid() {
+  const grid=document.getElementById('lureGrid');
+  grid.innerHTML='';
+  LURES.forEach(l=>{
+    const div=document.createElement('div');
+    div.className='lure-item'+(l.id===currentLure?' selected':'');
+    div.innerHTML=`<div class="lure-emoji">${l.emoji}</div><div class="lure-name">${l.name}</div>`;
+    div.addEventListener('pointerdown', ev=>{
+      ev.stopPropagation();
+      changeLure(l.id);
+    });
+    grid.appendChild(div);
+  });
+}
+
+function changeLure(id) {
+  if(id===currentLure) { closeLureMenu(); return; }
+  currentLure=id;
+  closeLureMenu();
+
+  if(gamePhase==='play') {
+    const isNew=!lureTried[id];
+    lureTried[id]=true;
+    // 새 미끼: 흥미 소폭 회복 (낯선 것에 대한 호기심)
+    interest = Math.min(100, interest + (isNew ? 10 : 4));
+    engagement = 0;
+  } else if(gamePhase==='attract') {
+    attractEng=Math.max(0, attractEng-8);
+  }
+
+  renderLureGrid();
+}
+
+function closeLureMenu() {
+  document.getElementById('lureMenu').classList.add('hidden');
+}
+
+document.getElementById('lureBtn').addEventListener('click', ()=>{
+  const menu=document.getElementById('lureMenu');
+  menu.classList.toggle('hidden');
+});
+
+// ═══════════════════════════════════════════════
+//  튜토리얼
+// ═══════════════════════════════════════════════
+function showTutorial() {
+  document.getElementById('tutorial').classList.remove('hidden');
+}
+
+document.getElementById('tutClose').addEventListener('click', ()=>{
+  localStorage.setItem(TUTORIAL_KEY,'1');
+  document.getElementById('tutorial').classList.add('hidden');
+});
+
+document.getElementById('helpBtn').addEventListener('click', ()=>{
+  document.getElementById('tutorial').classList.toggle('hidden');
+});
+
+// ═══════════════════════════════════════════════
+//  기타 버튼
+// ═══════════════════════════════════════════════
+document.getElementById('exitBtn').addEventListener('click', ()=>{
+  if(gamePhase==='done') return;
+  gamePhase='done';
+});
+
+// ═══════════════════════════════════════════════
+//  초기화 & 시작
+// ═══════════════════════════════════════════════
+renderLureGrid();
+if(!localStorage.getItem(TUTORIAL_KEY)) showTutorial();
+render();
+</script>
+</body>
+</html>

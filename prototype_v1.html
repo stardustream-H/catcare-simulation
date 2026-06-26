@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>당신은 몇 점짜리 집사?</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#000;display:flex;justify-content:center;align-items:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+
+#game{
+  width:390px;height:100vh;max-height:844px;
+  position:relative;overflow:hidden;
+  background:#0a0a0a;
+  display:flex;flex-direction:column;
+}
+
+/* ── SCENE ── */
+#scene{
+  flex:1;position:relative;overflow:hidden;
+  transition:background 3s ease;
+}
+
+.scene-bg{
+  position:absolute;inset:0;
+  transition:background 3s ease;
+}
+
+/* 시간대별 배경 */
+.bg-morning { background:radial-gradient(ellipse at 40% 20%, #1c0e04 0%, #100802 55%, #070504 100%); }
+.bg-afternoon { background:radial-gradient(ellipse at 60% 10%, #0c1822 0%, #080f18 55%, #050810 100%); }
+.bg-evening { background:radial-gradient(ellipse at 40% 30%, #1c0b06 0%, #100705 55%, #080504 100%); }
+.bg-night { background:radial-gradient(ellipse at 50% 80%, #07090f 0%, #04060c 55%, #020304 100%); }
+
+/* 조명 레이어 */
+#scene-light{
+  position:absolute;inset:0;pointer-events:none;
+  transition:background 3s ease;
+}
+
+/* ── 고양이 비주얼 ── */
+#cat-visual{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* 각 상태별 SVG 고양이 씬 */
+.cat-scene{
+  width:100%;height:100%;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:0;
+  padding-bottom:50px;
+}
+
+/* 고양이 SVG 컨테이너 */
+.cat-svg-wrap{
+  position:relative;
+  transition:all 1.5s ease;
+}
+
+/* 바닥 그림자 */
+.cat-shadow{
+  width:90px;height:16px;
+  background:radial-gradient(ellipse,rgba(0,0,0,0.5) 0%,transparent 70%);
+  margin-top:-6px;
+}
+
+/* 배경 환경 오브젝트 */
+.env-obj{
+  position:absolute;
+  opacity:0.15;
+  font-size:32px;
+  color:#fff;
+}
+
+/* ── HUD ── */
+#top-hud{
+  position:absolute;top:0;left:0;right:0;z-index:20;
+  padding:20px 20px 40px;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.55) 0%,transparent 100%);
+  display:flex;justify-content:space-between;align-items:flex-start;
+  pointer-events:none;
+}
+
+.hud-left .cat-name{font-size:18px;font-weight:600;color:#fff;letter-spacing:-0.3px;}
+.hud-left .cat-meta{font-size:11px;color:rgba(255,255,255,0.45);margin-top:3px;}
+
+.hud-money{
+  background:rgba(0,0,0,0.45);
+  border:0.5px solid rgba(255,255,255,0.12);
+  border-radius:20px;padding:6px 14px;
+  font-size:13px;font-weight:500;color:#86c97e;
+  pointer-events:auto;
+}
+
+/* 하단 상태 텍스트 */
+#state-hint{
+  position:absolute;bottom:0;left:0;right:0;z-index:20;
+  padding:50px 20px 16px;
+  background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 100%);
+  text-align:center;
+  font-size:13px;color:rgba(255,255,255,0.5);
+  pointer-events:none;
+  transition:opacity 0.8s ease;
+}
+
+/* 시간 표시 */
+#time-tag{
+  position:absolute;top:72px;right:20px;z-index:21;
+  font-size:10px;color:rgba(255,255,255,0.22);
+  pointer-events:none;letter-spacing:0.03em;
+}
+
+/* ── ACTION BAR ── */
+#action-bar{
+  background:#0a0a0a;
+  border-top:0.5px solid rgba(255,255,255,0.06);
+  padding:12px 16px 24px;
+}
+
+.actions{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;
+}
+
+.action-btn{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  padding:12px 4px;border-radius:16px;
+  background:rgba(255,255,255,0.035);
+  border:0.5px solid rgba(255,255,255,0.065);
+  cursor:pointer;transition:all 0.15s ease;
+}
+.action-btn:active{transform:scale(0.94);}
+.action-btn i{font-size:23px;color:rgba(255,255,255,0.45);}
+.action-btn span{font-size:10px;color:rgba(255,255,255,0.3);}
+
+.action-btn.urgent{
+  background:rgba(239,68,68,0.1);
+  border-color:rgba(239,68,68,0.28);
+  animation:pulse 2s infinite;
+}
+.action-btn.urgent i{color:#f87171;}
+.action-btn.urgent span{color:rgba(248,113,113,0.65);}
+
+.action-btn.ready{
+  background:rgba(255,255,255,0.06);
+  border-color:rgba(255,255,255,0.13);
+}
+.action-btn.ready i{color:rgba(255,255,255,0.7);}
+.action-btn.ready span{color:rgba(255,255,255,0.45);}
+
+@keyframes pulse{
+  0%,100%{border-color:rgba(239,68,68,0.28);}
+  50%{border-color:rgba(239,68,68,0.55);}
+}
+
+/* ── EVENT CARD ── */
+#event-overlay{
+  display:none;position:absolute;inset:0;z-index:100;
+  background:rgba(0,0,0,0.72);
+  align-items:flex-end;padding-bottom:16px;
+}
+#event-overlay.show{display:flex;}
+
+.event-card{
+  width:calc(100% - 24px);margin:0 12px;
+  background:#181818;border:0.5px solid rgba(255,255,255,0.1);
+  border-radius:22px;overflow:hidden;
+  animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+@keyframes slideUp{
+  from{transform:translateY(40px);opacity:0;}
+  to{transform:translateY(0);opacity:1;}
+}
+
+.event-img{
+  height:110px;background:#1e1e1e;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+.event-img i{font-size:44px;color:rgba(255,255,255,0.1);}
+.event-img-tint{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 60%,var(--tint,rgba(100,80,50,0.15)) 0%,transparent 70%);
+}
+
+.event-body{padding:18px;}
+.event-tag{font-size:10px;color:rgba(255,255,255,0.28);margin-bottom:8px;letter-spacing:0.04em;}
+.event-txt{font-size:14px;color:rgba(255,255,255,0.78);line-height:1.7;margin-bottom:18px;}
+.event-choices{display:flex;flex-direction:column;gap:8px;}
+
+.choice-btn{
+  padding:13px 16px;
+  border:0.5px solid rgba(255,255,255,0.1);border-radius:13px;
+  font-size:13px;color:rgba(255,255,255,0.6);
+  cursor:pointer;background:rgba(255,255,255,0.025);
+  text-align:left;transition:all 0.15s;
+}
+.choice-btn:active{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.85);}
+
+/* ── MINI-GAME ── */
+#mg-overlay{
+  display:none;position:absolute;inset:0;z-index:100;
+  background:#0d0d0d;flex-direction:column;
+}
+#mg-overlay.show{display:flex;}
+
+.mg-head{
+  padding:20px 16px 14px;
+  display:flex;align-items:center;gap:12px;
+  border-bottom:0.5px solid rgba(255,255,255,0.06);
+  flex-shrink:0;
+}
+.mg-back{font-size:22px;color:rgba(255,255,255,0.4);cursor:pointer;padding:4px;}
+.mg-back:active{color:rgba(255,255,255,0.8);}
+.mg-title{font-size:15px;font-weight:500;color:rgba(255,255,255,0.8);}
+.mg-sub{font-size:11px;color:rgba(255,255,255,0.3);margin-left:auto;}
+
+.mg-body{flex:1;display:flex;flex-direction:column;padding:16px;gap:14px;overflow:hidden;}
+
+.mg-hint{font-size:12px;color:rgba(255,255,255,0.35);text-align:center;}
+
+/* 공통 게임 영역 */
+.game-area{
+  flex:1;border-radius:18px;
+  border:0.5px solid rgba(255,255,255,0.06);
+  position:relative;overflow:hidden;
+}
+
+/* 진행 바 */
+.prog-row{display:flex;align-items:center;gap:12px;}
+.prog-track{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;transition:width 0.3s ease;}
+.prog-txt{font-size:12px;color:rgba(255,255,255,0.35);min-width:36px;text-align:right;}
+
+/* 완료 버튼 */
+.done-btn{
+  display:none;padding:15px;border-radius:15px;
+  font-size:14px;text-align:center;cursor:pointer;
+  transition:all 0.15s;
+}
+.done-btn.show{display:block;}
+.done-btn:active{transform:scale(0.97);}
+
+/* ── 화장실 미니게임 ── */
+#litter-area{background:#181410;cursor:default;}
+.clump{
+  position:absolute;border-radius:50%;
+  background:#3a2c1c;
+  cursor:pointer;transition:transform 0.1s,opacity 0.2s;
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,0.4);
+}
+.clump:active{transform:scale(1.15)!important;}
+.clump.gone{transform:scale(0)!important;opacity:0;pointer-events:none;}
+
+#litter-done{
+  background:rgba(80,140,80,0.15);
+  border:0.5px solid rgba(80,140,80,0.35);
+  color:#82c882;
+}
+
+/* ── 빗질 미니게임 ── */
+#groom-area{
+  background:#181410;
+  display:flex;align-items:center;justify-content:center;
+  cursor:ns-resize;user-select:none;
+}
+#groom-cat-icon{font-size:80px;color:rgba(255,255,255,0.08);pointer-events:none;}
+#groom-strokes{position:absolute;inset:0;pointer-events:none;}
+#groom-done{
+  background:rgba(160,120,70,0.15);
+  border:0.5px solid rgba(160,120,70,0.35);
+  color:#c8a06a;
+}
+
+/* ── 놀이 미니게임 ── */
+#play-area{background:#0d1520;cursor:none;}
+#toy{
+  position:absolute;width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;cursor:none;
+  transition:left 0.25s ease,top 0.25s ease;
+  filter:drop-shadow(0 0 8px rgba(200,160,80,0.4));
+}
+#cat-paw{
+  position:absolute;font-size:18px;
+  transition:left 0.45s ease,top 0.45s ease;
+  pointer-events:none;
+}
+#play-done{
+  background:rgba(70,120,180,0.15);
+  border:0.5px solid rgba(70,120,180,0.35);
+  color:#7aacda;
+}
+
+/* ── 감동 이벤트 ── */
+#emotion-overlay{
+  display:none;position:absolute;inset:0;z-index:200;
+  flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:48px 36px;gap:28px;cursor:pointer;
+  background:#100d08;
+}
+#emotion-overlay.show{display:flex;animation:fadeIn 1.2s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+.emotion-ambient{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 40%,rgba(180,130,60,0.07) 0%,transparent 65%);
+}
+#emotion-cat-bg{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-62%);
+  font-size:130px;color:rgba(255,255,255,0.035);
+  pointer-events:none;
+}
+.emotion-txt{
+  font-size:17px;color:rgba(255,255,255,0.62);
+  line-height:1.95;text-align:center;
+  font-style:italic;position:relative;z-index:1;
+  letter-spacing:0.01em;
+}
+.emotion-hint{
+  font-size:11px;color:rgba(255,255,255,0.18);
+  position:relative;z-index:1;
+}
+
+/* ── 토스트 ── */
+#toast{
+  position:absolute;top:88px;left:50%;z-index:300;
+  transform:translateX(-50%) translateY(-8px);
+  background:rgba(28,28,28,0.96);
+  border:0.5px solid rgba(255,255,255,0.1);
+  border-radius:20px;padding:8px 18px;
+  font-size:12px;color:rgba(255,255,255,0.6);
+  opacity:0;transition:all 0.28s ease;
+  pointer-events:none;white-space:nowrap;
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div id="game">
+
+  <!-- ── 씬 ── -->
+  <div id="scene">
+    <div class="scene-bg" id="scene-bg"></div>
+    <div id="scene-light"></div>
+    <div id="cat-visual"></div>
+
+    <div id="top-hud">
+      <div class="hud-left">
+        <div class="cat-name" id="hud-name">나비</div>
+        <div class="cat-meta" id="hud-meta">Day 1 · 코리안 숏헤어</div>
+      </div>
+      <div class="hud-money" id="hud-money">₩100,000</div>
+    </div>
+
+    <div id="time-tag"></div>
+    <div id="state-hint"></div>
+  </div>
+
+  <!-- ── 액션 바 ── -->
+  <div id="action-bar">
+    <div class="actions">
+      <div class="action-btn" id="btn-toilet" onclick="openMG('litter')">
+        <i class="ti ti-trash"></i><span>화장실</span>
+      </div>
+      <div class="action-btn" id="btn-feed" onclick="doFeed()">
+        <i class="ti ti-bowl"></i><span>밥주기</span>
+      </div>
+      <div class="action-btn" id="btn-groom" onclick="openMG('groom')">
+        <i class="ti ti-wind"></i><span>빗질</span>
+      </div>
+      <div class="action-btn" id="btn-play" onclick="openMG('play')">
+        <i class="ti ti-heart"></i><span>놀기</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 이벤트 카드 ── -->
+  <div id="event-overlay">
+    <div class="event-card">
+      <div class="event-img" id="event-img">
+        <div class="event-img-tint"></div>
+        <i class="ti ti-cat" id="event-icon"></i>
+      </div>
+      <div class="event-body">
+        <div class="event-tag" id="event-tag"></div>
+        <div class="event-txt" id="event-txt"></div>
+        <div class="event-choices" id="event-choices"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 미니게임 ── -->
+  <div id="mg-overlay">
+    <div class="mg-head">
+      <i class="ti ti-arrow-left mg-back" onclick="closeMG()"></i>
+      <span class="mg-title" id="mg-title"></span>
+      <span class="mg-sub" id="mg-sub"></span>
+    </div>
+
+    <!-- 화장실 -->
+    <div id="mg-litter" class="mg-body" style="display:none">
+      <div class="mg-hint">탭해서 덩어리를 제거하세요</div>
+      <div class="game-area" id="litter-area"></div>
+      <div class="prog-row">
+        <span class="prog-txt" id="litter-ct">0/0</span>
+        <div class="prog-track"><div class="prog-fill" id="litter-bar" style="width:0%;background:#5a9a5a;"></div></div>
+      </div>
+      <div class="done-btn" id="litter-done" onclick="finishLitter()">청소 완료 ✓</div>
+    </div>
+
+    <!-- 빗질 -->
+    <div id="mg-groom" class="mg-body" style="display:none">
+      <div class="mg-hint">화면을 아래로 쓸어내려 빗질하세요</div>
+      <div class="game-area" id="groom-area">
+        <i class="ti ti-cat" id="groom-cat-icon"></i>
+        <div id="groom-strokes"></div>
+      </div>
+      <div class="prog-row">
+        <span class="prog-txt" id="groom-ct">0%</span>
+        <div class="prog-track"><div class="prog-fill" id="groom-bar" style="width:0%;background:linear-gradient(90deg,#9a7040,#c49a60);"></div></div>
+      </div>
+      <div class="done-btn" id="groom-done" onclick="finishGroom()">빗질 완료 ✓</div>
+    </div>
+
+    <!-- 놀기 -->
+    <div id="mg-play" class="mg-body" style="display:none">
+      <div class="mg-hint">장난감을 움직여 고양이를 놀려주세요</div>
+      <div class="game-area" id="play-area">
+        <div id="toy">🐟</div>
+        <div id="cat-paw">🐾</div>
+      </div>
+      <div class="prog-row">
+        <span class="prog-txt" id="play-ct">0%</span>
+        <div class="prog-track"><div class="prog-fill" id="play-bar" style="width:0%;background:linear-gradient(90deg,#3a70b0,#6a9ad0);"></div></div>
+      </div>
+      <div class="done-btn" id="play-done" onclick="finishPlay()">놀이 완료 ✓</div>
+    </div>
+  </div>
+
+  <!-- ── 감동 이벤트 ── -->
+  <div id="emotion-overlay" onclick="closeEmotion()">
+    <div class="emotion-ambient"></div>
+    <i class="ti ti-cat" id="emotion-cat-bg"></i>
+    <div class="emotion-txt" id="emotion-txt"></div>
+    <div class="emotion-hint">화면을 터치하면 계속</div>
+  </div>
+
+  <!-- 토스트 -->
+  <div id="toast"></div>
+</div>
+
+<script>
+/* ===========================
+   GAME STATE
+=========================== */
+const G = {
+  name: '나비',
+  breed: '코리안 숏헤어',
+  day: 1,
+  money: 100000,
+  gameHour: new Date().getHours(),
+  gameTick: 0,
+
+  // 내부 스탯 (화면에 직접 표시 안 함)
+  hunger: 15,
+  stress: 20,
+  hygiene: 75,   // 화장실 청결도
+  coat: 80,      // 털 관리
+  health: 95,
+  trust: 30,
+};
+
+const TICK = 1000; // 1초
+// 1틱 = 게임 내 2분 → 30틱 = 1게임시간
+
+/* ===========================
+   시간대 / 씬 설정
+=========================== */
+const TOD = {
+  morning: {
+    bgClass: 'bg-morning',
+    light: 'radial-gradient(ellipse at 35% 15%,rgba(255,155,55,0.09) 0%,transparent 60%)',
+    catColor: 'rgba(255,200,130,0.72)',
+    label: '아침'
+  },
+  afternoon: {
+    bgClass: 'bg-afternoon',
+    light: 'radial-gradient(ellipse at 70% 10%,rgba(150,200,255,0.06) 0%,transparent 55%)',
+    catColor: 'rgba(170,205,240,0.65)',
+    label: '오후'
+  },
+  evening: {
+    bgClass: 'bg-evening',
+    light: 'radial-gradient(ellipse at 30% 30%,rgba(255,100,45,0.08) 0%,transparent 55%)',
+    catColor: 'rgba(240,155,90,0.7)',
+    label: '저녁'
+  },
+  night: {
+    bgClass: 'bg-night',
+    light: 'radial-gradient(ellipse at 50% 85%,rgba(60,90,180,0.06) 0%,transparent 55%)',
+    catColor: 'rgba(90,120,175,0.55)',
+    label: '심야'
+  }
+};
+
+function getTOD() {
+  const h = G.gameHour % 24;
+  if (h >= 6 && h < 12) return 'morning';
+  if (h >= 12 && h < 18) return 'afternoon';
+  if (h >= 18 && h < 22) return 'evening';
+  return 'night';
+}
+
+/* ===========================
+   고양이 상태 → 이미지/힌트
+=========================== */
+function getCatState() {
+  if (G.health < 40) return 'sick';
+  if (G.hunger > 72) return 'hungry';
+  if (G.stress > 68) return 'stressed';
+  if (G.hygiene < 28) return 'dirty';
+  if (G.coat < 35) return 'matted';
+  if (G.trust > 68 && G.hunger < 30 && G.stress < 30) return 'trusting';
+  if (G.hunger < 30 && G.stress < 35 && G.health > 70) return 'happy';
+  return 'neutral';
+}
+
+const STATE_META = {
+  happy:    { hint: '편안하게 쉬고 있어요', size: 135, opacity: 0.72, glow: 'rgba(200,160,80,0.14)' },
+  trusting: { hint: '골골대고 있어요 ♥', size: 140, opacity: 0.76, glow: 'rgba(180,220,160,0.12)' },
+  hungry:   { hint: '밥그릇 앞에서 기다리고 있어요', size: 120, opacity: 0.55, glow: 'rgba(200,120,40,0.1)' },
+  stressed: { hint: '뭔가 불편한 것 같아요', size: 118, opacity: 0.52, glow: 'rgba(200,80,60,0.1)' },
+  sick:     { hint: '상태가 좋지 않아요...', size: 112, opacity: 0.42, glow: 'rgba(100,120,200,0.08)' },
+  dirty:    { hint: '화장실 앞에서 울고 있어요', size: 115, opacity: 0.5, glow: 'rgba(160,110,60,0.08)' },
+  matted:   { hint: '털이 많이 엉켜있어요', size: 120, opacity: 0.55, glow: 'rgba(150,100,50,0.08)' },
+  neutral:  { hint: '조용히 있어요', size: 128, opacity: 0.62, glow: 'rgba(120,120,140,0.08)' }
+};
+
+// 각 상태별 SVG 고양이 (간단한 CSS + icon 기반)
+function buildCatSVG(state, todKey) {
+  const tod = TOD[todKey];
+  const meta = STATE_META[state];
+
+  // 상태별 포즈 아이콘
+  const icons = {
+    happy:    'ti-cat',
+    trusting: 'ti-cat',
+    hungry:   'ti-bowl',
+    stressed: 'ti-alert-triangle',
+    sick:     'ti-heart-off',
+    dirty:    'ti-trash',
+    matted:   'ti-wind',
+    neutral:  'ti-cat'
+  };
+
+  // 배경 환경 오브젝트 (상태/시간에 따라)
+  let envHTML = '';
+  if (state === 'hungry') {
+    envHTML = `<div class="env-obj" style="bottom:25%;left:28%;font-size:28px;">🍽️</div>`;
+  }
+  if (todKey === 'morning') {
+    envHTML += `<div class="env-obj" style="top:18%;right:20%;font-size:22px;"><i class="ti ti-sun" style="color:rgba(255,180,60,0.18);"></i></div>`;
+  }
+  if (todKey === 'night') {
+    envHTML += `<div class="env-obj" style="top:14%;left:18%;font-size:20px;"><i class="ti ti-moon" style="color:rgba(120,150,220,0.2);"></i></div>`;
+  }
+
+  return `
+    <div class="cat-scene">
+      ${envHTML}
+      <div class="cat-svg-wrap">
+        <i class="ti ${icons[state]}"
+           style="font-size:${meta.size}px;
+                  color:${tod.catColor};
+                  opacity:${meta.opacity};
+                  filter:drop-shadow(0 0 48px ${meta.glow}) drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+                  display:block;transition:all 1.5s ease;">
+        </i>
+      </div>
+      <div class="cat-shadow" style="width:${meta.size * 0.65}px;"></div>
+    </div>
+  `;
+}
+
+/* ===========================
+   씬 업데이트
+=========================== */
+function updateScene() {
+  const todKey = getTOD();
+  const tod = TOD[todKey];
+  const catState = getCatState();
+  const meta = STATE_META[catState];
+
+  // 배경
+  const bg = document.getElementById('scene-bg');
+  bg.className = `scene-bg ${tod.bgClass}`;
+
+  // 조명
+  document.getElementById('scene-light').style.background = tod.light;
+
+  // 고양이 비주얼
+  document.getElementById('cat-visual').innerHTML = buildCatSVG(catState, todKey);
+
+  // 상태 힌트
+  document.getElementById('state-hint').textContent = meta.hint;
+
+  // 시간 태그
+  document.getElementById('time-tag').textContent = `${tod.label} ${G.gameHour}시`;
+
+  // 버튼 긴급도
+  refreshButtons();
+}
+
+function refreshButtons() {
+  const setClass = (id, cls) => document.getElementById(id).className = 'action-btn' + (cls ? ' ' + cls : '');
+
+  setClass('btn-toilet', G.hygiene < 35 ? 'urgent' : G.hygiene < 60 ? 'ready' : '');
+  setClass('btn-feed',   G.hunger > 60 ? 'urgent' : G.hunger > 35 ? 'ready' : '');
+  setClass('btn-groom',  G.coat < 40 ? 'urgent' : G.coat < 65 ? 'ready' : '');
+  setClass('btn-play',   G.stress > 60 ? 'urgent' : G.stress > 35 ? 'ready' : '');
+}
+
+function updateHUD() {
+  document.getElementById('hud-name').textContent = G.name;
+  document.getElementById('hud-meta').textContent = `Day ${G.day} · ${G.breed}`;
+  document.getElementById('hud-money').textContent = `₩${G.money.toLocaleString()}`;
+}
+
+/* ===========================
+   게임 틱
+=========================== */
+function gameTick() {
+  G.gameTick++;
+
+  // 30틱 = 게임 1시간
+  if (G.gameTick % 30 === 0) {
+    G.gameHour = (G.gameHour + 1) % 24;
+    if (G.gameHour === 0) G.day++;
+  }
+
+  // 스탯 자연 감소
+  G.hunger  = clamp(G.hunger  + 0.09, 0, 100);
+  G.hygiene = clamp(G.hygiene - 0.045, 0, 100);
+  G.coat    = clamp(G.coat    - 0.022, 0, 100);
+
+  // 스트레스 누적
+  let dStress = 0;
+  if (G.hunger > 60)  dStress += 0.09;
+  if (G.hygiene < 30) dStress += 0.08;
+  if (G.coat < 40)    dStress += 0.04;
+  G.stress = clamp(G.stress + dStress, 0, 100);
+
+  // 건강
+  if (G.stress > 80 || G.hunger > 85) {
+    G.health = clamp(G.health - 0.03, 0, 100);
+  } else if (G.hunger < 30 && G.stress < 25) {
+    G.health = clamp(G.health + 0.015, 0, 100);
+  }
+
+  // 신뢰도 - 시간이 흐르면서 좋은 케어를 하면 천천히 쌓임
+  if (G.hunger < 30 && G.stress < 30 && G.health > 70) {
+    G.trust = clamp(G.trust + 0.01, 0, 100);
+  }
+
+  // 랜덤 이벤트
+  if (Math.random() < 0.004 && !document.getElementById('event-overlay').classList.contains('show')) {
+    triggerEvent();
+  }
+
+  // 랜덤 감동 이벤트
+  if (Math.random() < 0.0008 && G.trust > 45 &&
+      !document.getElementById('emotion-overlay').classList.contains('show')) {
+    showEmotion();
+  }
+
+  updateScene();
+  updateHUD();
+}
+
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+/* ===========================
+   밥주기
+=========================== */
+function doFeed() {
+  const cost = 3000;
+  if (G.money < cost) { toast('잔액이 부족해요'); return; }
+  G.hunger = clamp(G.hunger - 60, 0, 100);
+  G.stress = clamp(G.stress - 5, 0, 100);
+  G.trust  = clamp(G.trust + 2, 0, 100);
+  G.money -= cost;
+  toast('밥을 줬어요 🍚');
+  updateScene();
+  updateHUD();
+}
+
+/* ===========================
+   미니게임
+=========================== */
+let playTimer = null;
+
+function openMG(type) {
+  const ov = document.getElementById('mg-overlay');
+  ov.classList.add('show');
+  ['mg-litter','mg-groom','mg-play'].forEach(id => document.getElementById(id).style.display = 'none');
+
+  if (type === 'litter') {
+    document.getElementById('mg-title').textContent = '화장실 청소';
+    const n = Math.max(3, Math.round(4 + (100 - G.hygiene) / 12));
+    document.getElementById('mg-sub').textContent = `덩어리 ${n}개`;
+    document.getElementById('mg-litter').style.display = 'flex';
+    setupLitter(n);
+  } else if (type === 'groom') {
+    document.getElementById('mg-title').textContent = '빗질';
+    document.getElementById('mg-sub').textContent = G.coat < 50 ? '엉킴이 많아요' : '';
+    document.getElementById('mg-groom').style.display = 'flex';
+    setupGroom();
+  } else if (type === 'play') {
+    document.getElementById('mg-title').textContent = '놀아주기';
+    document.getElementById('mg-sub').textContent = '장난감을 움직이세요';
+    document.getElementById('mg-play').style.display = 'flex';
+    setupPlay();
+  }
+}
+
+function closeMG() {
+  document.getElementById('mg-overlay').classList.remove('show');
+  if (playTimer) { clearInterval(playTimer); playTimer = null; }
+  // 이벤트 핸들러 정리
+  const ga = document.getElementById('groom-area');
+  ga.onmousedown = ga.ontouchstart = null;
+  ga.onmousemove = ga.ontouchmove = null;
+  ga.onmouseup = ga.ontouchend = null;
+  const pa = document.getElementById('play-area');
+  pa.onmousemove = pa.ontouchmove = null;
+}
+
+/* -- 화장실 -- */
+let litterTotal = 0, litterDone = 0;
+
+function setupLitter(n) {
+  litterTotal = n; litterDone = 0;
+  const area = document.getElementById('litter-area');
+  area.innerHTML = '';
+  document.getElementById('litter-done').classList.remove('show');
+  document.getElementById('litter-bar').style.width = '0%';
+  document.getElementById('litter-ct').textContent = `0/${n}`;
+
+  const sizes = [22, 18, 26, 20, 24, 16, 22, 20];
+  for (let i = 0; i < n; i++) {
+    const c = document.createElement('div');
+    c.className = 'clump';
+    const s = sizes[i % sizes.length] + Math.random() * 8;
+    c.style.cssText = `
+      width:${s}px; height:${s * 0.7}px;
+      left:${12 + Math.random() * 72}%;
+      top:${12 + Math.random() * 68}%;
+      transform:rotate(${Math.random()*360}deg);
+      opacity:${0.55 + Math.random() * 0.4};
+    `;
+    c.addEventListener('pointerdown', () => hitClump(c));
+    area.appendChild(c);
+  }
+}
+
+function hitClump(el) {
+  if (el.classList.contains('gone')) return;
+  el.classList.add('gone');
+  litterDone++;
+  setTimeout(() => el.remove(), 220);
+  const p = Math.round(litterDone / litterTotal * 100);
+  document.getElementById('litter-bar').style.width = p + '%';
+  document.getElementById('litter-ct').textContent = `${litterDone}/${litterTotal}`;
+  if (litterDone >= litterTotal) document.getElementById('litter-done').classList.add('show');
+}
+
+function finishLitter() {
+  G.hygiene = clamp(G.hygiene + 55, 0, 100);
+  G.stress  = clamp(G.stress - 10, 0, 100);
+  closeMG();
+  toast('화장실이 깨끗해졌어요 ✓');
+  updateScene();
+}
+
+/* -- 빗질 -- */
+let groomProg = 0, groomDragging = false, groomPrevY = 0;
+
+function setupGroom() {
+  groomProg = 0;
+  document.getElementById('groom-bar').style.width = '0%';
+  document.getElementById('groom-ct').textContent = '0%';
+  document.getElementById('groom-done').classList.remove('show');
+  document.getElementById('groom-strokes').innerHTML = '';
+
+  const area = document.getElementById('groom-area');
+
+  area.onmousedown = area.ontouchstart = (e) => {
+    groomDragging = true;
+    groomPrevY = e.touches ? e.touches[0].clientY : e.clientY;
+  };
+
+  area.onmousemove = area.ontouchmove = (e) => {
+    if (!groomDragging) return;
+    e.preventDefault();
+    const y = e.touches ? e.touches[0].clientY : e.clientY;
+    const dy = y - groomPrevY;
+    groomPrevY = y;
+
+    if (dy > 2) {
+      groomProg = Math.min(100, groomProg + dy * 0.55);
+      document.getElementById('groom-bar').style.width = groomProg + '%';
+      document.getElementById('groom-ct').textContent = Math.round(groomProg) + '%';
+
+      // 빗질 선 시각화
+      const rect = area.getBoundingClientRect();
+      const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+      const relY = y - rect.top;
+      const stroke = document.createElement('div');
+      stroke.style.cssText = `
+        position:absolute; left:${x - 25}px; top:${relY - 1}px;
+        width:50px; height:2px;
+        background:rgba(190,145,85,0.28);
+        border-radius:1px; pointer-events:none;
+        transition:opacity 1.8s ease;
+      `;
+      document.getElementById('groom-strokes').appendChild(stroke);
+      setTimeout(() => stroke.style.opacity = '0', 300);
+      setTimeout(() => stroke.remove(), 2100);
+
+      if (groomProg >= 100) {
+        area.onmousemove = area.ontouchmove = null;
+        document.getElementById('groom-done').classList.add('show');
+      }
+    }
+  };
+
+  area.onmouseup = area.ontouchend = () => { groomDragging = false; };
+}
+
+function finishGroom() {
+  G.coat   = clamp(G.coat + 48, 0, 100);
+  G.hygiene = clamp(G.hygiene + 5, 0, 100);
+  G.trust  = clamp(G.trust + 3, 0, 100);
+  closeMG();
+  toast('빗질을 해줬어요 ✓');
+  updateScene();
+}
+
+/* -- 놀기 -- */
+let playProg = 0;
+let toyX = 50, toyY = 50;
+let pawX = 20, pawY = 50;
+
+function setupPlay() {
+  playProg = 0;
+  toyX = 50; toyY = 50; pawX = 20; pawY = 50;
+
+  document.getElementById('play-bar').style.width = '0%';
+  document.getElementById('play-ct').textContent = '0%';
+  document.getElementById('play-done').classList.remove('show');
+
+  const toy = document.getElementById('toy');
+  const paw = document.getElementById('cat-paw');
+  const area = document.getElementById('play-area');
+
+  toy.style.left = toyX + '%';
+  toy.style.top  = toyY + '%';
+  paw.style.left = pawX + '%';
+  paw.style.top  = pawY + '%';
+
+  area.onmousemove = area.ontouchmove = (e) => {
+    e.preventDefault();
+    const rect = area.getBoundingClientRect();
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+    toyX = clamp(cx / rect.width * 100, 5, 90);
+    toyY = clamp(cy / rect.height * 100, 5, 90);
+    toy.style.left = toyX + '%';
+    toy.style.top  = toyY + '%';
+  };
+
+  // 고양이 발이 장난감을 쫓아감
+  playTimer = setInterval(() => {
+    const dx = toyX - pawX, dy = toyY - pawY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist > 2) {
+      const spd = 3.5;
+      pawX += dx / dist * spd;
+      pawY += dy / dist * spd;
+      paw.style.left = pawX + '%';
+      paw.style.top  = pawY + '%';
+
+      // 잡으면!
+      if (dist < 9) {
+        playProg = Math.min(100, playProg + 14);
+        document.getElementById('play-bar').style.width = playProg + '%';
+        document.getElementById('play-ct').textContent = Math.round(playProg) + '%';
+        // 장난감 다른 곳으로
+        toyX = 10 + Math.random() * 78;
+        toyY = 10 + Math.random() * 78;
+        toy.style.left = toyX + '%';
+        toy.style.top  = toyY + '%';
+
+        if (playProg >= 100) {
+          clearInterval(playTimer); playTimer = null;
+          area.onmousemove = area.ontouchmove = null;
+          document.getElementById('play-done').classList.add('show');
+        }
+      }
+    }
+  }, 50);
+}
+
+function finishPlay() {
+  G.stress = clamp(G.stress - 32, 0, 100);
+  G.trust  = clamp(G.trust + 5, 0, 100);
+  closeMG();
+  toast('신나게 놀았어요! 🐟');
+  if (G.trust > 55 && Math.random() < 0.32) {
+    setTimeout(showEmotion, 900);
+  }
+  updateScene();
+}
+
+/* ===========================
+   이벤트 카드
+=========================== */
+const EVENTS = [
+  {
+    tag: '돌발 이벤트',
+    icon: 'ti-trash',
+    tint: 'rgba(120,80,30,0.18)',
+    cond: () => G.hygiene < 42,
+    txt: '나비가 화장실 앞에서 계속 울고 있다. 화장실 상태가 좋지 않은 것 같다.',
+    choices: [
+      { txt: '지금 바로 청소한다', fn: () => { G.hygiene = clamp(G.hygiene + 50, 0, 100); G.stress = clamp(G.stress - 8, 0, 100); toast('청소했어요'); } },
+      { txt: '내일 아침에 한다',   fn: () => { G.stress = clamp(G.stress + 8, 0, 100); } },
+      { txt: '무시하고 잔다',      fn: () => { G.stress = clamp(G.stress + 18, 0, 100); G.trust = clamp(G.trust - 4, 0, 100); } }
+    ]
+  },
+  {
+    tag: '일상 이벤트',
+    icon: 'ti-bowl',
+    tint: 'rgba(200,110,30,0.15)',
+    cond: () => G.hunger > 65,
+    txt: '나비가 밥그릇 앞에 앉아 이쪽을 뚫어지게 쳐다보고 있다. 많이 배가 고픈 것 같다.',
+    choices: [
+      { txt: '지금 바로 밥을 준다 (-₩3,000)', fn: () => doFeed() },
+      { txt: '조금 있다가 준다',              fn: () => { G.hunger = clamp(G.hunger + 8, 0, 100); } },
+      { txt: '정해진 시간까지 기다린다',       fn: () => { G.stress = clamp(G.stress + 6, 0, 100); } }
+    ]
+  },
+  {
+    tag: '의료 이벤트',
+    icon: 'ti-first-aid-kit',
+    tint: 'rgba(80,100,200,0.15)',
+    cond: () => G.health < 72,
+    txt: '나비의 상태가 평소와 다르다. 밥도 잘 안 먹고, 자꾸 숨으려 한다. 병원에 데려가야 할까?',
+    choices: [
+      { txt: '병원에 데려간다 (-₩50,000)', fn: () => {
+        if (G.money < 50000) { toast('잔액 부족 — 치료를 못 했어요'); G.health = clamp(G.health - 8, 0, 100); return; }
+        G.health = clamp(G.health + 28, 0, 100);
+        G.money -= 50000;
+        toast('₩50,000 지출 · 건강이 좋아졌어요');
+        updateHUD();
+      }},
+      { txt: '좀 더 지켜본다', fn: () => { G.health = clamp(G.health - 6, 0, 100); toast('시간이 지나면서 악화됐어요'); } }
+    ]
+  },
+  {
+    tag: '일상 이벤트',
+    icon: 'ti-cat',
+    tint: 'rgba(80,60,30,0.12)',
+    cond: () => true,
+    txt: '찰칵. 테이블 위에 있던 머그컵이 바닥에 깨져 있다. 나비가 모른 척하고 있다.',
+    choices: [
+      { txt: '치운다 (그러려니 한다)', fn: () => toast('...(치운다)') },
+      { txt: '혼낸다',              fn: () => { G.stress = clamp(G.stress + 12, 0, 100); G.trust = clamp(G.trust - 5, 0, 100); toast('나비가 도망갔어요'); } }
+    ]
+  },
+  {
+    tag: '비용 이벤트',
+    icon: 'ti-receipt',
+    tint: 'rgba(200,160,40,0.12)',
+    cond: () => true,
+    txt: '이번 달 사료와 모래, 예방약 비용이 청구됐다. 총 ₩65,000이다.',
+    choices: [
+      { txt: '지출한다 (-₩65,000)', fn: () => {
+        if (G.money < 65000) { toast('잔액 부족!'); return; }
+        G.money -= 65000; toast('₩65,000 지출됐어요'); updateHUD();
+      }},
+      { txt: '이번 달은 절약한다', fn: () => {
+        G.health = clamp(G.health - 5, 0, 100);
+        toast('저가 사료로 대체했어요 — 건강에 영향이 생길 수 있어요');
+      }}
+    ]
+  }
+];
+
+function triggerEvent() {
+  const possible = EVENTS.filter(e => e.cond());
+  if (!possible.length) return;
+  const ev = possible[Math.floor(Math.random() * possible.length)];
+
+  document.getElementById('event-icon').className = `ti ${ev.icon}`;
+  document.querySelector('.event-img-tint').style.setProperty('--tint', ev.tint);
+  document.getElementById('event-tag').textContent = ev.tag;
+  document.getElementById('event-txt').textContent = ev.txt;
+
+  const cc = document.getElementById('event-choices');
+  cc.innerHTML = '';
+  ev.choices.forEach(c => {
+    const btn = document.createElement('div');
+    btn.className = 'choice-btn';
+    btn.textContent = c.txt;
+    btn.onclick = () => {
+      c.fn();
+      document.getElementById('event-overlay').classList.remove('show');
+      updateScene(); updateHUD();
+    };
+    cc.appendChild(btn);
+  });
+
+  document.getElementById('event-overlay').classList.add('show');
+}
+
+/* ===========================
+   감동 이벤트
+=========================== */
+const EMOTIONS = [
+  '처음으로 무릎에 올라왔다.\n따뜻하다.',
+  '오늘 유독 힘들었던 날,\n나비가 조용히 옆에 와서 앉았다.',
+  '눈이 마주쳤다.\n나비가 천천히 눈을 깜빡였다.',
+  '골골대는 소리가 들린다.\n오늘 하루가 괜찮았나 보다.',
+  '자다가 깨보니\n발치에 붙어서 자고 있었다.',
+  '문을 열자마자 달려왔다.\n기다리고 있었던 것 같다.'
+];
+
+function showEmotion() {
+  const txt = EMOTIONS[Math.floor(Math.random() * EMOTIONS.length)];
+  document.getElementById('emotion-txt').innerHTML = txt.replace('\n', '<br>');
+  document.getElementById('emotion-overlay').classList.add('show');
+  G.trust = clamp(G.trust + 1.5, 0, 100);
+}
+
+function closeEmotion() {
+  document.getElementById('emotion-overlay').classList.remove('show');
+}
+
+/* ===========================
+   토스트
+=========================== */
+let toastTm = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTm);
+  toastTm = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ===========================
+   INIT
+=========================== */
+updateScene();
+updateHUD();
+setInterval(gameTick, TICK);
+
+// 데모용: 5초 후 랜덤 이벤트 하나
+setTimeout(() => {
+  if (!document.getElementById('event-overlay').classList.contains('show')) triggerEvent();
+}, 5000);
+</script>
+</body>
+</html>

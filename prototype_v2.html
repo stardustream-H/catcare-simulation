@@ -1,0 +1,3097 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>당신은 몇점짜리 집사?</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:#080810;color:#e0d8cc;font-family:-apple-system,'Noto Sans KR',sans-serif;min-height:100vh;display:flex;justify-content:center;}
+#app{width:100%;max-width:390px;min-height:100vh;background:#0d0d1c;position:relative;overflow-x:hidden;}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;min-height:100vh;}
+.screen.active{display:flex;}
+
+/* ── INTRO ── */
+#s-intro{align-items:center;justify-content:center;padding:40px 24px;text-align:center;background:linear-gradient(180deg,rgba(13,13,28,0.55) 0%,rgba(10,10,24,0.7) 100%),url('images/bg_intro.jpeg') center/cover no-repeat;}
+.intro-paw{font-size:56px;margin-bottom:24px;filter:drop-shadow(0 0 20px rgba(200,168,130,0.4));}
+.intro-title{font-size:22px;font-weight:700;color:#e8dcc8;line-height:1.4;margin-bottom:8px;}
+.intro-subtitle{font-size:13px;color:#665c50;line-height:1.7;margin-bottom:40px;}
+.intro-desc{font-size:12px;color:#4a4035;line-height:1.8;margin-bottom:48px;padding:16px;background:rgba(255,255,255,0.02);border-radius:10px;border:1px solid rgba(255,255,255,0.05);text-align:left;}
+.intro-desc span{color:#7a6e60;}
+.btn-primary{width:100%;max-width:280px;padding:18px;background:linear-gradient(135deg,#c8a882,#a07855);border:none;border-radius:14px;color:#0d0d1c;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:0.5px;}
+.btn-primary:active{opacity:0.85;transform:scale(0.98);}
+
+/* ── BREED SELECT ── */
+#s-breed{padding:24px 16px 32px;}
+.screen-title{font-size:18px;font-weight:700;color:#e0d4c0;margin-bottom:4px;}
+.screen-sub{font-size:12px;color:#555;margin-bottom:20px;}
+.breed-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.breed-card{padding:16px 12px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:12px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.breed-card:active,.breed-card.selected{border-color:#c8a882;background:rgba(200,168,130,0.08);}
+.breed-emoji{font-size:28px;margin-bottom:6px;}
+.breed-card-img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;margin-bottom:6px;}
+.breed-name{font-size:13px;font-weight:600;color:#d0c8bc;margin-bottom:3px;}
+.breed-trait{font-size:10px;color:#666;line-height:1.4;}
+.breed-diff{font-size:10px;margin-top:4px;}
+.diff-easy{color:#7cb8a0;}
+.diff-hard{color:#c87a7a;}
+.diff-med{color:#c8a882;}
+#breed-confirm{margin-top:16px;opacity:0.3;pointer-events:none;}
+#breed-confirm.ready{opacity:1;pointer-events:auto;}
+
+/* ── NAME INPUT ── */
+#s-name{padding:40px 24px;align-items:center;justify-content:center;text-align:center;}
+.name-breed-label{font-size:13px;color:#888;margin-bottom:20px;}
+.name-prompt{font-size:18px;font-weight:600;margin-bottom:8px;}
+.name-hint{font-size:12px;color:#555;margin-bottom:28px;}
+.name-input{width:100%;max-width:280px;padding:16px;background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.12);border-radius:12px;color:#e0d8cc;font-size:18px;text-align:center;outline:none;margin-bottom:12px;}
+.name-input:focus{border-color:#c8a882;}
+.name-suggestions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:28px;}
+.name-chip{padding:6px 12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:20px;font-size:12px;color:#888;cursor:pointer;}
+.name-chip:active{background:rgba(200,168,130,0.15);color:#c8a882;}
+
+/* ── CHAPTER INTRO ── */
+#s-chapter-intro{align-items:center;justify-content:center;padding:40px 24px;text-align:center;}
+.chapter-num{font-size:11px;color:#666;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;}
+.chapter-name{font-size:28px;font-weight:700;color:#e0d4c0;margin-bottom:8px;}
+.chapter-period{font-size:13px;color:#7cb8a0;margin-bottom:20px;}
+.chapter-desc{font-size:13px;color:#666;line-height:1.8;margin-bottom:40px;max-width:280px;}
+.chapter-icon{font-size:64px;margin-bottom:20px;}
+
+/* ── EVENT SCREEN ── */
+#s-event{flex-direction:column;}
+.game-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
+.hdr-name{font-size:13px;font-weight:600;color:#c8a882;}
+.hdr-chapter{font-size:11px;color:#555;}
+.hdr-score{font-size:13px;font-weight:700;color:#7cb8a0;}
+
+.scene-wrap{width:100%;height:210px;background:#111128;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;flex-shrink:0;}
+.scene-emoji{font-size:52px;z-index:2;position:relative;}
+.scene-img-desc{font-size:10px;color:#aaa;text-align:center;padding:4px 16px;font-style:italic;line-height:1.5;z-index:2;position:relative;}
+.scene-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+.scene-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,0.7) 100%);z-index:1;}
+
+.event-content{flex:1;overflow-y:auto;padding:0 0 16px;}
+.event-tag-wrap{padding:12px 16px 0;}
+.event-tag{font-size:10px;padding:3px 8px;border-radius:10px;display:inline-block;font-weight:600;letter-spacing:0.5px;}
+.tag-mandatory{background:rgba(124,184,160,0.15);color:#7cb8a0;}
+.tag-personality{background:rgba(168,130,200,0.15);color:#a882c8;}
+.tag-breed{background:rgba(200,168,130,0.15);color:#c8a882;}
+.tag-behavior{background:rgba(200,120,120,0.15);color:#c87878;}
+
+.situation-box{margin:10px 16px 0;padding:14px 16px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;}
+.situation-text{font-size:13px;line-height:1.8;color:#c0b8b0;}
+
+.choices-wrap{padding:12px 16px 0;display:flex;flex-direction:column;gap:8px;}
+.choice-btn{width:100%;padding:13px 15px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.09);border-radius:10px;color:#ccc;font-size:12.5px;text-align:left;cursor:pointer;line-height:1.5;transition:border-color 0.15s,background 0.15s;}
+.choice-btn:active{background:rgba(255,255,255,0.08);}
+
+/* ── RESULT OVERLAY ── */
+.result-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s;}
+.result-sheet{background:#15152a;border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:390px;max-height:80vh;overflow-y:auto;}
+.result-badge{display:inline-block;font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;margin-bottom:14px;letter-spacing:0.5px;}
+.badge-correct{background:rgba(124,184,160,0.2);color:#7cb8a0;}
+.badge-plausible{background:rgba(200,168,130,0.2);color:#c8a882;}
+.badge-caring{background:rgba(200,140,60,0.2);color:#c8883c;}
+.badge-selfish{background:rgba(180,80,80,0.2);color:#c85858;}
+.result-score-line{font-size:32px;font-weight:700;margin-bottom:4px;}
+.score-positive{color:#7cb8a0;}
+.score-partial{color:#c8a882;}
+.score-low{color:#c8883c;}
+.score-zero{color:#555;}
+.result-desc{font-size:13px;color:#aaa;line-height:1.7;margin-bottom:14px;}
+.result-expert{font-size:11px;color:#555;line-height:1.6;padding:10px 12px;background:rgba(255,255,255,0.02);border-left:2px solid #333;border-radius:0 6px 6px 0;margin-bottom:20px;}
+.btn-next{width:100%;padding:15px;background:#c8a882;border:none;border-radius:12px;color:#0d0d1c;font-size:15px;font-weight:700;cursor:pointer;}
+.btn-next:active{opacity:0.85;}
+
+/* ── CHAPTER SUMMARY ── */
+#s-chapter-summary{align-items:center;justify-content:center;padding:40px 24px;text-align:center;background:linear-gradient(180deg,rgba(10,10,20,0.6) 0%,rgba(5,5,15,0.75) 100%),url('images/bg_summary.jpeg') center/cover no-repeat;}
+.summary-label{font-size:11px;color:#666;letter-spacing:2px;margin-bottom:12px;}
+.summary-score{font-size:56px;font-weight:700;color:#c8a882;margin-bottom:4px;}
+.summary-max{font-size:13px;color:#555;margin-bottom:16px;}
+.summary-bar-wrap{width:100%;max-width:280px;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;margin:0 auto 24px;overflow:hidden;}
+.summary-bar{height:100%;background:linear-gradient(90deg,#7cb8a0,#c8a882);border-radius:3px;transition:width 0.8s ease;}
+.summary-comment{font-size:14px;color:#888;line-height:1.7;max-width:280px;margin-bottom:40px;}
+
+/* ── ENDING ── */
+#s-ending{align-items:center;justify-content:center;padding:40px 24px;text-align:center;background:linear-gradient(180deg,rgba(10,10,20,0.5) 0%,rgba(5,5,15,0.65) 100%),url('images/bg_room_lonely.jpeg') center/cover no-repeat;}
+.ending-paw{font-size:48px;margin-bottom:8px;}
+.ending-score-num{font-size:64px;font-weight:700;color:#c8a882;}
+.ending-score-suffix{font-size:20px;color:#888;margin-bottom:16px;}
+.ending-grade{font-size:24px;font-weight:700;color:#e0d4c0;margin-bottom:8px;}
+.ending-stars{font-size:28px;margin-bottom:20px;}
+.ending-comment{font-size:13px;color:#777;line-height:1.8;max-width:300px;margin-bottom:40px;}
+.btn-replay{padding:16px 40px;background:rgba(200,168,130,0.1);border:1.5px solid rgba(200,168,130,0.4);border-radius:14px;color:#c8a882;font-size:15px;font-weight:600;cursor:pointer;}
+
+/* ── UTIL ── */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.slide-up{animation:slideUp 0.25s ease;}
+.progress-dots{display:flex;gap:6px;justify-content:center;margin:12px 0;}
+.dot{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.1);}
+.dot.done{background:#7cb8a0;}
+.dot.active{background:#c8a882;width:16px;}
+
+/* ── DISCLAIMER ── */
+#s-disclaimer{padding:32px 24px 40px;overflow-y:auto;}
+.disc-icon{font-size:40px;text-align:center;margin-bottom:16px;}
+.disc-title{font-size:18px;font-weight:700;color:#e0d4c0;text-align:center;margin-bottom:20px;}
+.disc-section{margin-bottom:16px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);}
+.disc-section-title{font-size:11px;font-weight:700;color:#c8a882;letter-spacing:1px;margin-bottom:8px;}
+.disc-section-body{font-size:12px;color:#888;line-height:1.8;}
+.disc-section-body b{color:#aaa;}
+.disc-agree{display:flex;align-items:center;gap:10px;padding:16px;margin:8px 0 20px;background:rgba(200,168,130,0.06);border:1px solid rgba(200,168,130,0.2);border-radius:12px;cursor:pointer;}
+.disc-agree input{width:18px;height:18px;accent-color:#c8a882;cursor:pointer;}
+.disc-agree-text{font-size:13px;color:#c0b8b0;}
+
+/* ── ROOM SCREEN ── */
+#s-room{flex-direction:column;background:#fdf6ed;}
+
+/* 히어로: 고양이 이미지 메인 영역 */
+.cat-hero{width:100%;height:58vh;position:relative;overflow:hidden;flex-shrink:0;background:#e8e0d0;}
+.cat-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.45;z-index:0;}
+.cat-hero-img{width:100%;height:100%;object-fit:contain;object-position:bottom center;position:relative;z-index:2;transition:opacity 0.3s;}
+.cat-hero-emoji{font-size:110px;position:absolute;bottom:18%;left:50%;transform:translateX(-50%);z-index:2;display:flex;align-items:center;justify-content:center;}
+
+/* 히어로 상단 오버레이 (날짜/챕터) */
+.hero-top-bar{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:12px 16px 24px;background:linear-gradient(180deg,rgba(253,246,237,0.90) 0%,rgba(253,246,237,0) 100%);z-index:3;}
+.hero-day{font-size:12px;color:#6a5040;font-weight:700;}
+.hero-chapter{font-size:11px;color:#9a8870;}
+.hero-stress{font-size:11px;color:#b85050;}
+
+/* 히어로 하단 오버레이 (무드 텍스트) */
+.hero-mood-bar{position:absolute;bottom:0;left:0;right:0;padding:24px 16px 10px;background:linear-gradient(0deg,rgba(253,246,237,0.95) 0%,rgba(253,246,237,0) 100%);z-index:3;text-align:center;}
+.hero-mood-text{font-size:12px;color:#8a7060;font-style:italic;letter-spacing:0.02em;}
+
+/* 하단 패널 */
+.room-panel{flex:1;display:flex;flex-direction:column;background:#fdf6ed;overflow-y:auto;}
+
+/* 스탯 미니바 */
+.stat-mini-row{display:flex;gap:6px;padding:10px 16px 8px;flex-shrink:0;border-bottom:1px solid rgba(0,0,0,0.07);}
+.stat-mini{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.smi-icon{font-size:13px;line-height:1;}
+.smi-track{width:100%;height:4px;background:rgba(0,0,0,0.09);border-radius:2px;overflow:hidden;}
+.stat-bar{height:100%;border-radius:2px;transition:width 0.4s ease;}
+.stat-hunger{background:linear-gradient(90deg,#c8a870,#e0b860);}
+.stat-hydration{background:linear-gradient(90deg,#70a8c8,#90c0e0);}
+.stat-litter{background:linear-gradient(90deg,#a070b8,#b890d0);}
+.stat-play{background:linear-gradient(90deg,#68a888,#88c0a0);}
+.stat-groom{background:linear-gradient(90deg,#b8906a,#d0aa88);}
+.stat-bar.danger{background:linear-gradient(90deg,#c84040,#e06060);}
+.stat-bar.warning{background:linear-gradient(90deg,#c87030,#e09050);}
+
+/* 케어 버튼 */
+.care-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:8px 16px;flex-shrink:0;}
+.care-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:rgba(255,255,255,0.7);border:1px solid rgba(0,0,0,0.09);border-radius:10px;cursor:pointer;transition:all 0.15s;position:relative;}
+.care-btn:active{background:rgba(200,155,100,0.18);border-color:#c8a060;}
+.care-icon{font-size:22px;position:relative;}
+.care-name{font-size:9px;color:#8a7060;text-align:center;line-height:1.2;}
+.care-btn.alert{border-color:rgba(180,60,60,0.35);background:rgba(180,60,60,0.07);}
+.care-btn.alert .care-name{color:#b84040;}
+
+/* 하단 액션 바 */
+.room-bottom{display:flex;gap:8px;padding:8px 16px 16px;flex-shrink:0;margin-top:auto;}
+.btn-shop{flex:0 0 auto;padding:14px 16px;background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.12);border-radius:12px;color:#7a6050;font-size:13px;cursor:pointer;}
+.btn-endday{flex:1;padding:14px;background:linear-gradient(135deg,#b89060,#8a6038);border:none;border-radius:12px;color:#fdf6ed;font-size:14px;font-weight:700;cursor:pointer;}
+.btn-endday:active{opacity:0.85;}
+
+/* ── SHOP ── */
+.shop-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:flex-end;justify-content:center;}
+.shop-sheet{background:#13132a;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:390px;max-height:85vh;overflow-y:auto;}
+.shop-title{font-size:16px;font-weight:700;color:#e0d4c0;margin-bottom:4px;}
+.shop-sub{font-size:11px;color:#555;margin-bottom:16px;}
+.shop-category{font-size:10px;font-weight:700;color:#c8a882;letter-spacing:1px;margin:12px 0 8px;}
+.shop-item{display:flex;align-items:center;gap:12px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:6px;}
+.shop-item-icon{font-size:28px;flex-shrink:0;}
+.shop-item-info{flex:1;}
+.shop-item-name{font-size:13px;color:#d0c8bc;font-weight:600;margin-bottom:2px;}
+.shop-item-desc{font-size:10px;color:#555;line-height:1.5;}
+.shop-item-price{font-size:11px;color:#c8a882;font-weight:700;margin-top:3px;}
+.shop-buy-btn{padding:8px 14px;background:rgba(200,168,130,0.15);border:1px solid rgba(200,168,130,0.3);border-radius:8px;color:#c8a882;font-size:12px;font-weight:600;cursor:pointer;flex-shrink:0;}
+.shop-buy-btn.owned{background:rgba(124,184,160,0.1);border-color:rgba(124,184,160,0.3);color:#7cb8a0;cursor:default;}
+.shop-close{width:100%;padding:14px;background:rgba(255,255,255,0.05);border:none;border-radius:12px;color:#666;font-size:14px;cursor:pointer;margin-top:12px;}
+
+/* ── CARE ACTION SHEET ── */
+.care-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;display:flex;align-items:flex-end;justify-content:center;}
+.care-sheet{background:#13132a;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:390px;max-height:70vh;overflow-y:auto;}
+.care-sheet-title{font-size:15px;font-weight:700;color:#e0d4c0;margin-bottom:4px;}
+.care-sheet-sub{font-size:11px;color:#555;margin-bottom:16px;}
+.care-info-box{padding:12px 14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;margin-bottom:12px;font-size:12px;color:#888;line-height:1.7;}
+.care-info-box b{color:#c8a882;}
+.care-do-btn{width:100%;padding:14px;background:linear-gradient(135deg,#c8a882,#a07855);border:none;border-radius:12px;color:#0d0d1c;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;}
+.care-cancel-btn{width:100%;padding:12px;background:transparent;border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:#555;font-size:13px;cursor:pointer;}
+
+/* ── LITTER MINI-GAME ── */
+.litter-game-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:400;display:flex;align-items:center;justify-content:center;padding:16px;}
+.litter-game-box{background:#13132a;border-radius:16px;padding:18px;width:100%;max-width:360px;}
+.litter-game-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.litter-game-title{font-size:15px;font-weight:700;color:#e0d4c0;}
+.litter-size-badge{font-size:10px;padding:3px 8px;border-radius:8px;background:rgba(200,168,130,0.15);color:#c8a882;font-weight:600;}
+.litter-hint{font-size:11px;color:#555;margin-bottom:10px;line-height:1.5;}
+.litter-grid-wrap{
+  background:#c8a870;border-radius:10px;padding:10px;
+  border:2px solid #2a1e3a;
+  touch-action:none;user-select:none;
+  display:inline-block; /* 내용 크기에 맞게 줄어듦 */
+  width:fit-content;
+  margin:0 auto;
+}
+.litter-grid-center{display:flex;justify-content:center;}
+.litter-grid{display:grid;gap:0;line-height:0;font-size:0;width:fit-content;}
+.litter-cell{
+  width:24px;height:24px;
+  position:relative;
+  overflow:visible; /* 소변이 인접 칸으로 넘칠 수 있게 */
+  cursor:crosshair;
+  background:#c8a870;
+  transition:background 0.07s;
+  z-index:1;
+}
+.litter-cell.disturbed-1{background:#b89060;} /* 첫 드래그만 이 색으로 고정 */
+.litter-cell.clean{background:#d0b87a;}
+/* 소변 — 2×2 블록 전체를 덮는 타원형 */
+.litter-clump-urine{
+  position:absolute;
+  width:44px;height:44px;
+  top:1px;left:2px;
+  border-radius:50%;
+  background:radial-gradient(ellipse at 40% 38%,#9a7040,#6e4e28);
+  opacity:0;transform:scale(0.15);
+  transition:none;pointer-events:none;
+  box-shadow:0 1px 4px rgba(0,0,0,0.45);
+  z-index:3;
+}
+/* 똥 — 단일 칸 크기의 둥근 덩어리 */
+.litter-clump-poop{
+  position:absolute;
+  inset:3px;
+  border-radius:50% 42% 48% 44%;
+  background:radial-gradient(circle at 38% 35%,#4c2c16,#28100a);
+  opacity:0;transform:scale(0.15);
+  transition:none;pointer-events:none;
+  box-shadow:inset -1px -2px 3px rgba(0,0,0,0.5),0 1px 2px rgba(0,0,0,0.45);
+  z-index:3;
+}
+.litter-clump-urine.visible,.litter-clump-poop.visible{
+  opacity:1;transform:scale(1);pointer-events:auto;cursor:pointer;z-index:4;
+}
+.litter-clump-urine.visible:active,.litter-clump-poop.visible:active{transform:scale(0.88);}
+.litter-clump-urine.removed,.litter-clump-poop.removed{
+  opacity:0!important;transform:scale(0)!important;pointer-events:none;
+}
+.litter-tool-area{display:flex;justify-content:center;align-items:center;gap:18px;margin:10px 0 8px;}
+.litter-tool-btn{
+  font-size:26px;padding:10px 14px;
+  border-radius:12px;cursor:pointer;
+  background:rgba(200,168,130,0.08);
+  border:2px solid rgba(200,168,130,0.15);
+  transition:background 0.15s,border-color 0.15s,transform 0.1s;
+  user-select:none;
+}
+.litter-tool-btn.active{
+  background:rgba(200,168,130,0.22);
+  border-color:#c8a870;
+  transform:scale(1.06);
+}
+.litter-tool-btn:active{transform:scale(0.93);}
+
+/* ── DAY RESULT ── */
+.day-result-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:250;display:flex;align-items:center;justify-content:center;padding:24px;}
+.day-result-box{background:#13132a;border-radius:16px;padding:20px;width:100%;max-width:340px;}
+.day-result-title{font-size:14px;font-weight:700;color:#e0d4c0;margin-bottom:12px;text-align:center;}
+.day-penalty-list{margin-bottom:16px;}
+.day-penalty-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;color:#888;}
+.day-penalty-item.warn{color:#c8883c;}
+.day-penalty-item.bad{color:#c85858;}
+.day-penalty-item.ok{color:#7cb8a0;}
+.btn-day-next{width:100%;padding:13px;background:#c8a882;border:none;border-radius:12px;color:#0d0d1c;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;}
+
+/* ── 미니게임 공통 오버레이 ── */
+.mg-overlay{position:fixed;inset:0;z-index:200;background:#0d0d1c;display:flex;align-items:center;justify-content:center;}
+.mg-wrap{width:390px;max-height:100vh;background:#13132a;overflow:hidden;position:relative;display:flex;flex-direction:column;}
+.mg-wrap canvas{display:block;width:390px;flex-shrink:0;}
+.mg-bottom-ui{padding:10px 20px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#13132a;}
+.mg-tool-btn{font-size:22px;padding:7px 12px;border-radius:12px;border:2px solid rgba(200,168,130,0.15);background:rgba(200,168,130,0.07);cursor:pointer;transition:all 0.15s;}
+.mg-tool-btn.active{border-color:#c8a870;background:rgba(200,168,130,0.22);transform:scale(1.05);}
+.mg-info{font-size:11px;color:#444;letter-spacing:0.04em;flex:1;}
+.mg-next-btn{font-size:12px;color:#c8a882;padding:8px 16px;border:1px solid #3a3060;border-radius:20px;background:transparent;cursor:pointer;display:none;}
+.mg-next-btn.show{display:block;}
+.mg-exit-btn{font-size:11px;color:#555;padding:7px 14px;border:1px solid #2a2a4a;border-radius:20px;background:transparent;cursor:pointer;margin-left:auto;}
+.mg-exit-btn:active{color:#888;}
+
+/* 놀이 미니게임 */
+.play-mg-overlay{position:fixed;inset:0;z-index:200;background:#13132a;display:flex;align-items:center;justify-content:center;}
+.play-mg-wrap{width:390px;max-height:100vh;overflow:hidden;position:relative;}
+.play-mg-wrap canvas{display:block;width:390px;}
+.play-bottom-ui{padding:10px 20px 16px;display:flex;align-items:center;gap:8px;background:#13132a;}
+.play-lure-panel{position:absolute;bottom:52px;left:0;right:0;background:#161630;border-top:1px solid #252545;padding:14px 18px 18px;z-index:10;}
+.play-lure-panel.hidden{display:none;}
+.play-lure-grid{display:flex;gap:8px;justify-content:center;}
+.play-lure-item{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 0;width:60px;border-radius:12px;cursor:pointer;border:1px solid #252545;}
+.play-lure-item.selected{border-color:rgba(200,168,130,0.4);background:rgba(200,168,130,0.07);}
+.play-lure-emoji{font-size:20px;line-height:1;}
+.play-lure-name{font-size:9px;color:rgba(255,255,255,0.35);text-align:center;}
+.play-tut-overlay{position:absolute;top:0;left:0;width:390px;height:520px;background:rgba(10,8,22,0.9);display:flex;align-items:center;justify-content:center;z-index:20;}
+.play-tut-overlay.hidden{display:none;}
+.play-tut-box{width:310px;background:#1a1a38;border:1px solid #2a2a50;border-radius:16px;padding:24px 22px;}
+.play-tut-title{color:rgba(255,255,255,0.75);font-size:14px;font-weight:600;text-align:center;margin-bottom:18px;}
+.play-tut-body{color:rgba(255,255,255,0.42);font-size:11.5px;line-height:1.85;}
+.play-tut-body li{margin-bottom:5px;list-style:none;padding-left:1em;text-indent:-1em;}
+.play-tut-body li::before{content:'· ';color:rgba(200,168,130,0.5);}
+.play-tut-hl{color:rgba(200,168,130,0.75);}
+.play-tut-close{display:block;width:100%;margin-top:20px;padding:10px;background:rgba(200,168,130,0.1);border:1px solid rgba(200,168,130,0.2);color:rgba(200,168,130,0.65);border-radius:10px;cursor:pointer;font-size:12px;font-family:inherit;}
+.play-lure-btn{font-size:11px;color:#888;padding:7px 14px;border:1px solid #2a2a4a;border-radius:20px;background:transparent;cursor:pointer;}
+.play-help-btn{font-size:11px;color:#555;width:28px;height:28px;border:1px solid #2a2a4a;border-radius:50%;background:transparent;cursor:pointer;flex-shrink:0;text-align:center;}
+.play-exit-btn{font-size:11px;color:#444;padding:7px 14px;border:1px solid #222240;border-radius:20px;background:transparent;cursor:pointer;margin-left:auto;}
+
+/* ℹ 정보 팝업 */
+.info-overlay{position:fixed;inset:0;z-index:300;background:rgba(10,8,22,0.88);display:flex;align-items:center;justify-content:center;}
+.info-card{width:330px;background:#1a1a38;border:1px solid #2a2a50;border-radius:16px;padding:24px 22px;}
+.info-card-title{color:rgba(255,255,255,0.8);font-size:15px;font-weight:600;margin-bottom:16px;}
+.info-card-body{color:rgba(255,255,255,0.5);font-size:12px;line-height:1.9;}
+.info-card-close{display:block;width:100%;margin-top:20px;padding:10px;background:rgba(255,255,255,0.05);border:1px solid #2a2a50;color:rgba(255,255,255,0.4);border-radius:10px;cursor:pointer;font-size:12px;font-family:inherit;}
+
+/* 가계부 */
+.ledger-overlay{position:fixed;inset:0;z-index:300;background:rgba(10,8,22,0.9);display:flex;align-items:flex-end;justify-content:center;}
+.ledger-sheet{width:390px;max-height:80vh;background:#1a1a38;border-radius:18px 18px 0 0;padding:20px 18px 32px;overflow-y:auto;}
+.ledger-title{color:rgba(255,255,255,0.7);font-size:15px;font-weight:600;margin-bottom:16px;}
+.ledger-total{color:#c8a870;font-size:13px;font-weight:600;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #2a2a50;}
+.ledger-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.ledger-item-label{color:rgba(255,255,255,0.45);font-size:11px;}
+.ledger-item-cost{color:rgba(200,168,130,0.7);font-size:11px;}
+.ledger-close{display:block;width:100%;margin-top:18px;padding:10px;background:rgba(255,255,255,0.04);border:1px solid #2a2a50;color:rgba(255,255,255,0.35);border-radius:10px;cursor:pointer;font-size:12px;font-family:inherit;}
+.btn-ledger{background:rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.12);color:#8a7060;font-size:11px;padding:8px 12px;border-radius:20px;cursor:pointer;font-family:inherit;}
+.btn-ledger:active{background:rgba(0,0,0,0.10);}
+
+/* 초기 비용 팝업 */
+.cost-popup-overlay{position:fixed;inset:0;z-index:300;background:rgba(10,8,22,0.92);display:flex;align-items:center;justify-content:center;}
+.cost-popup-box{width:340px;background:#1a1a38;border:1px solid #2a2a50;border-radius:18px;padding:22px 20px;max-height:85vh;overflow-y:auto;}
+.cost-popup-title{color:rgba(255,255,255,0.8);font-size:14px;font-weight:600;margin-bottom:4px;text-align:center;}
+.cost-popup-sub{color:rgba(255,255,255,0.3);font-size:10px;text-align:center;margin-bottom:16px;}
+.cost-popup-item{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.cost-popup-label{color:rgba(255,255,255,0.5);font-size:11px;}
+.cost-popup-price{color:rgba(200,168,130,0.75);font-size:11px;}
+.cost-popup-total{display:flex;justify-content:space-between;padding:10px 0 0;margin-top:4px;}
+.cost-popup-total-label{color:rgba(255,255,255,0.65);font-size:12px;font-weight:600;}
+.cost-popup-total-price{color:#c8a870;font-size:13px;font-weight:600;}
+.cost-popup-notice{font-size:10px;color:rgba(255,255,255,0.25);margin-top:12px;line-height:1.7;}
+.cost-popup-confirm{display:block;width:100%;margin-top:16px;padding:11px;background:rgba(200,168,130,0.12);border:1px solid rgba(200,168,130,0.25);color:rgba(200,168,130,0.8);border-radius:10px;cursor:pointer;font-size:12px;font-family:inherit;}
+
+/* 소모품 팝업 */
+.consumable-overlay{position:fixed;inset:0;z-index:400;background:rgba(10,8,22,0.88);display:flex;align-items:center;justify-content:center;}
+.consumable-box{width:300px;background:#1a1a38;border:1px solid #2a2a50;border-radius:16px;padding:22px 20px;}
+.consumable-icon{font-size:34px;text-align:center;margin-bottom:10px;}
+.consumable-title{color:rgba(255,255,255,0.75);font-size:13px;font-weight:600;text-align:center;margin-bottom:8px;}
+.consumable-desc{color:rgba(255,255,255,0.38);font-size:11px;text-align:center;margin-bottom:12px;line-height:1.7;}
+.consumable-cost{color:#c8a870;font-size:13px;font-weight:600;text-align:center;margin-bottom:16px;}
+.consumable-confirm{display:block;width:100%;padding:10px;background:rgba(200,168,130,0.1);border:1px solid rgba(200,168,130,0.2);color:rgba(200,168,130,0.7);border-radius:10px;cursor:pointer;font-size:12px;font-family:inherit;}
+
+/* care-btn ℹ 아이콘 */
+.care-btn{position:relative;}
+.care-info-icon{position:absolute;top:3px;right:4px;font-size:9px;color:rgba(100,80,60,0.35);cursor:pointer;z-index:5;padding:2px;line-height:1;font-style:normal;}
+.care-info-icon:hover{color:rgba(100,80,60,0.65);}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- DISCLAIMER -->
+<div class="screen" id="s-disclaimer">
+  <div class="disc-icon">🐾</div>
+  <div class="disc-title">플레이 전 꼭 읽어주세요</div>
+  <div class="disc-section">
+    <div class="disc-section-title">이 게임은?</div>
+    <div class="disc-section-body">고양이 입양을 고려하는 분들이 일상적인 케어와 발생할 수 있는 상황을 <b>미리 체험</b>해볼 수 있도록 만든 <b>현실 기반 시뮬레이션</b>입니다.</div>
+  </div>
+  <div class="disc-section">
+    <div class="disc-section-title">꼭 참고해주세요</div>
+    <div class="disc-section-body">
+      • 실제 고양이는 개체마다 성격·건강·식습관이 <b>크게 다를 수 있습니다</b><br>
+      • 게임 내 건강·질병 정보는 일반적인 <b>참고용</b>이며, 실제 증상은 반드시 <b>수의사 진료</b>를 받으세요<br>
+      • 치료비·사료비 등 비용은 지역·병원·상황에 따라 <b>다릅니다</b><br>
+      • 이 게임은 입양의 어려움을 알리기 위한 것이지, 고양이를 키우면 <b>안 된다는 뜻이 아닙니다</b>
+    </div>
+  </div>
+  <div class="disc-section">
+    <div class="disc-section-title">입양을 생각하고 있다면</div>
+    <div class="disc-section-body">실제로 잘 키우는 분들은 어떻게든 방법을 찾아 잘 키웁니다. 게임을 통해 현실적인 준비를 하고, 그 고양이의 <b>평생을 함께할 준비</b>가 됐을 때 입양을 결정해주세요 🐱</div>
+  </div>
+  <div class="disc-section">
+    <div class="disc-section-title">💰 비용 안내</div>
+    <div class="disc-section-body">
+      게임 내 용품·의료 비용은 <b>실제 시중 평균가</b>를 기반으로 설정되었습니다<br>
+      구매처·지역·시기에 따라 <b>실제 가격은 다를 수 있으니</b>, 입양 전 반드시 <b>직접 확인하고 준비</b>해주세요<br>
+      첫 달 준비 비용만 <b>10~20만원 이상</b>이 드는 경우가 많습니다
+    </div>
+  </div>
+  <label class="disc-agree">
+    <input type="checkbox" id="disc-check" onchange="checkDiscAgree()">
+    <span class="disc-agree-text">위 내용을 이해했습니다</span>
+  </label>
+  <button class="btn-primary" id="disc-start-btn" onclick="goTo('intro')" style="max-width:100%;opacity:0.3;pointer-events:none;">시작하기</button>
+</div>
+
+<!-- INTRO -->
+<div class="screen active" id="s-intro">
+  <div class="intro-paw">🐾</div>
+  <div class="intro-title">당신은 몇점짜리<br>집사인가요?</div>
+  <div class="intro-subtitle">한 고양이의 평생을 함께합니다</div>
+  <div class="intro-desc">
+    <span>이 게임은?</span><br>
+    고양이를 입양하고 키우는 과정에서 실제로 겪는 상황들을<br>직접 선택해보는 체험형 게임입니다.<br><br>
+    좋은 집사가 되는 것이 얼마나 쉽지 않은지,<br>그럼에도 왜 고양이와 함께하는지<br>느껴보세요.
+  </div>
+  <button class="btn-primary" onclick="goTo('breed')">시작하기</button>
+</div>
+
+<!-- BREED SELECT -->
+<div class="screen" id="s-breed">
+  <div style="padding:24px 16px 0">
+    <div class="screen-title">어떤 고양이를 키울까요?</div>
+    <div class="screen-sub">품종마다 성격과 특성이 달라요</div>
+  </div>
+  <div style="padding:0 16px;flex:1;">
+    <div class="breed-grid" id="breed-grid"></div>
+  </div>
+  <div style="padding:16px;">
+    <button class="btn-primary" id="breed-confirm" onclick="confirmBreed()">이 아이로 할게요</button>
+  </div>
+</div>
+
+<!-- NAME INPUT -->
+<div class="screen" id="s-name">
+  <div class="name-breed-label" id="name-breed-label"></div>
+  <div class="name-prompt">이름을 지어주세요</div>
+  <div class="name-hint">평생 함께할 이름이에요</div>
+  <input class="name-input" id="name-input" type="text" maxlength="8" placeholder="이름 입력">
+  <div class="name-suggestions" id="name-suggestions"></div>
+  <button class="btn-primary" onclick="confirmName()" style="max-width:280px;width:100%;">이름 확정</button>
+</div>
+
+<!-- CHAPTER INTRO -->
+<div class="screen" id="s-chapter-intro">
+  <div class="chapter-icon" id="ci-icon"></div>
+  <div class="chapter-num" id="ci-num"></div>
+  <div class="chapter-name" id="ci-name"></div>
+  <div class="chapter-period" id="ci-period"></div>
+  <div class="chapter-desc" id="ci-desc"></div>
+  <div class="progress-dots" id="ci-dots"></div>
+  <button class="btn-primary" id="ci-btn" onclick="startChapter()" style="max-width:240px;width:100%;"></button>
+</div>
+
+<!-- EVENT -->
+<div class="screen" id="s-event">
+  <div class="game-header">
+    <span class="hdr-name" id="hdr-name"></span>
+    <span class="hdr-chapter" id="hdr-chapter"></span>
+    <span class="hdr-score" id="hdr-score"></span>
+  </div>
+  <div class="scene-wrap" id="scene-wrap">
+    <img id="scene-img" class="scene-img" src="" alt="" style="display:none">
+    <div class="scene-overlay" id="scene-overlay" style="display:none"></div>
+    <div class="scene-emoji" id="scene-emoji"></div>
+    <div class="scene-img-desc" id="scene-desc"></div>
+  </div>
+  <div class="event-content">
+    <div class="event-tag-wrap"><span class="event-tag" id="event-tag"></span></div>
+    <div class="situation-box"><div class="situation-text" id="situation-text"></div></div>
+    <div class="choices-wrap" id="choices-wrap"></div>
+  </div>
+</div>
+
+<!-- CHAPTER SUMMARY -->
+<div class="screen" id="s-chapter-summary">
+  <div class="summary-label" id="sum-label">챕터 종료</div>
+  <div class="summary-score" id="sum-score"></div>
+  <div class="summary-max" id="sum-max"></div>
+  <div class="summary-bar-wrap"><div class="summary-bar" id="sum-bar"></div></div>
+  <div class="summary-comment" id="sum-comment"></div>
+  <button class="btn-primary" id="sum-btn" onclick="nextChapter()" style="max-width:240px;width:100%;"></button>
+</div>
+
+<!-- MIDPOINT REVIEW (챕터 1+2 완료 후) -->
+<div class="screen" id="s-midpoint">
+  <div class="summary-label">축하해요 🎉</div>
+  <div style="font-size:13px;color:#c8a882;margin:4px 0 20px;text-align:center;font-weight:600;">아기 시절 · 청소년기 완료</div>
+  <div class="summary-score" id="mid-score"></div>
+  <div class="summary-max" id="mid-max"></div>
+  <div class="summary-bar-wrap"><div class="summary-bar" id="mid-bar"></div></div>
+  <div class="summary-comment" id="mid-comment" style="margin-bottom:8px;"></div>
+  <div style="padding:0 28px 28px;width:100%;max-width:390px;text-align:center;">
+    <div style="font-size:13px;color:#666;line-height:1.9;margin-bottom:28px;padding:16px;background:rgba(200,168,130,0.06);border-radius:12px;border:1px solid rgba(200,168,130,0.12);">
+      당신의 고양이가 어엿한 성체로 자랐습니다.<br>
+      입양부터 지금까지, 정말 수고 많으셨어요.<br><br>
+      <span style="color:#c8a882;">고양이의 남은 생도 함께하시겠습니까?</span>
+    </div>
+    <button class="btn-primary" onclick="continueTo34()" style="margin-bottom:10px;">성묘기·노령기도 함께하기</button>
+    <button class="btn-replay" onclick="showEnding()" style="width:100%;max-width:none;">여기서 마치기</button>
+  </div>
+</div>
+
+<!-- ROOM -->
+<div class="screen" id="s-room">
+  <!-- 히어로: 고양이 이미지가 화면의 주인공 -->
+  <div class="cat-hero" id="cat-hero">
+    <div class="cat-hero-bg" id="cat-stage-bg"></div>
+    <img class="cat-hero-img" id="room-cat-img" src="" alt="고양이" style="display:none"
+         onerror="this.style.display='none';document.getElementById('room-cat-emoji').style.display='flex'">
+    <div class="cat-hero-emoji" id="room-cat-emoji" style="display:none">🐱</div>
+    <div class="hero-top-bar">
+      <span class="hero-day" id="room-day-label"></span>
+      <span class="hero-chapter" id="room-chapter-label"></span>
+      <span class="hero-stress" id="room-stress-label"></span>
+    </div>
+    <div class="hero-mood-bar">
+      <span class="hero-mood-text" id="room-cat-mood">평온해 보여요</span>
+    </div>
+  </div>
+  <!-- 하단 패널: 스탯 + 케어 + 액션 -->
+  <div class="room-panel">
+    <div class="stat-mini-row">
+      <div class="stat-mini"><span class="smi-icon">🍚</span><div class="smi-track"><div class="stat-bar stat-hunger" id="bar-hunger" style="width:100%"></div></div></div>
+      <div class="stat-mini"><span class="smi-icon">💧</span><div class="smi-track"><div class="stat-bar stat-hydration" id="bar-hydration" style="width:100%"></div></div></div>
+      <div class="stat-mini"><span class="smi-icon">🚽</span><div class="smi-track"><div class="stat-bar stat-litter" id="bar-litter" style="width:100%"></div></div></div>
+      <div class="stat-mini"><span class="smi-icon">🎾</span><div class="smi-track"><div class="stat-bar stat-play" id="bar-play" style="width:100%"></div></div></div>
+      <div class="stat-mini"><span class="smi-icon">✂️</span><div class="smi-track"><div class="stat-bar stat-groom" id="bar-groom" style="width:100%"></div></div></div>
+      <!-- JS updateStatBars()가 참조하는 숨김 요소 -->
+      <span id="val-hunger" style="display:none"></span>
+      <span id="val-hydration" style="display:none"></span>
+      <span id="val-litter" style="display:none"></span>
+      <span id="val-play" style="display:none"></span>
+      <span id="val-groom" style="display:none"></span>
+    </div>
+    <div class="care-grid">
+      <div class="care-btn" id="care-feed" onclick="openCare('feed')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('feed')">ℹ</i>
+        <span class="care-icon">🍚</span>
+        <span class="care-name">밥 주기</span>
+      </div>
+      <div class="care-btn" id="care-water" onclick="openCare('water')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('water')">ℹ</i>
+        <span class="care-icon">💧</span>
+        <span class="care-name">물 주기</span>
+      </div>
+      <div class="care-btn" id="care-litter" onclick="openCare('litter')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('litter')">ℹ</i>
+        <span class="care-icon">🚽</span>
+        <span class="care-name">화장실</span>
+      </div>
+      <div class="care-btn" id="care-play" onclick="openCare('play')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('play')">ℹ</i>
+        <span class="care-icon">🎾</span>
+        <span class="care-name">놀아주기</span>
+      </div>
+      <div class="care-btn" id="care-groom" onclick="openCare('groom')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('groom')">ℹ</i>
+        <span class="care-icon">🪮</span>
+        <span class="care-name">빗질</span>
+      </div>
+      <div class="care-btn" id="care-nail" onclick="openCare('nail')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('nail')">ℹ</i>
+        <span class="care-icon">✂️</span>
+        <span class="care-name">발톱 확인</span>
+      </div>
+      <div class="care-btn" id="care-teeth" onclick="openCare('teeth')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('teeth')">ℹ</i>
+        <span class="care-icon">🪥</span>
+        <span class="care-name">양치질</span>
+      </div>
+      <div class="care-btn" id="care-treat" onclick="openCare('treat')">
+        <i class="care-info-icon" onclick="event.stopPropagation();showCareInfo('treat')">ℹ</i>
+        <span class="care-icon">🍬</span>
+        <span class="care-name">간식 주기</span>
+      </div>
+    </div>
+    <div class="room-bottom">
+      <button class="btn-ledger" onclick="openLedger()">📒 가계부</button>
+      <button class="btn-shop" onclick="openShop()">🛒 샵</button>
+      <button class="btn-endday" onclick="endDay()">하루 마치기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ENDING -->
+<div class="screen" id="s-ending">
+  <div class="ending-paw">🐾</div>
+  <div class="ending-score-num" id="end-score"></div>
+  <div class="ending-score-suffix">점짜리 집사</div>
+  <div class="ending-grade" id="end-grade"></div>
+  <div class="ending-stars" id="end-stars"></div>
+  <div class="ending-comment" id="end-comment"></div>
+  <button class="btn-replay" onclick="restartGame()">다시 해보기</button>
+</div>
+
+</div><!-- #app -->
+
+<script>
+// ═══════════════════════════════
+// DATA
+// ═══════════════════════════════
+
+const BREEDS = [
+  { id:'korean', name:'코리안숏헤어', emoji:'🐱', trait:'건강하고 적응력 강함', diff:'쉬움', diffClass:'diff-easy' },
+  { id:'russian', name:'러시안블루', emoji:'🩵', trait:'조용하고 예민, 식탐 있음', diff:'보통', diffClass:'diff-med' },
+  { id:'scottish', name:'스코티시폴드', emoji:'🐱', trait:'순하지만 관절 주의 필요', diff:'어려움', diffClass:'diff-hard' },
+  { id:'persian', name:'페르시안', emoji:'😸', trait:'매일 눈·털 관리 필수', diff:'어려움', diffClass:'diff-hard' },
+  { id:'abyssinian', name:'아비시니안', emoji:'🐈', trait:'활동적, 치아 관리 필수', diff:'보통', diffClass:'diff-med' },
+  { id:'maincoon', name:'메인쿤', emoji:'🦁', trait:'대형종, 심장 정기 검진', diff:'어려움', diffClass:'diff-hard' },
+];
+
+// 품종 선택 화면 카드용
+const BREED_IMAGES = {
+  korean:'images/cat_korean_adult.jpeg', russian:'images/cat_russian_adult.jpeg',
+  scottish:'images/cat_scottish_adult.jpeg', persian:'images/cat_persian_adult.jpeg',
+  abyssinian:'images/cat_abyssinian_adult.jpeg', maincoon:'images/cat_maincoon_adult.jpeg',
+};
+
+// 품종별 성장 단계 포트레이트 (챕터 1~4)
+const CAT_PORTRAITS = {
+  korean:    { 1:'images/cat_korean_kitten.jpeg',  2:'images/cat_korean_teen.jpeg',   3:'images/cat_korean_adult.jpeg',    4:'images/cat_korean_adult.jpeg' },
+  russian:   { 1:'images/cat_korean_kitten.jpeg',  2:'images/cat_korean_teen.jpeg',   3:'images/cat_russian_adult.jpeg',   4:'images/cat_russian_senior.jpeg' },
+  scottish:  { 1:'images/cat_korean_kitten.jpeg',  2:'images/cat_korean_teen.jpeg',   3:'images/cat_scottish_adult.jpeg',  4:'images/cat_scottish_senior.jpeg' },
+  persian:   { 1:'images/cat_korean_kitten.jpeg',  2:'images/cat_persian_teen.jpeg',  3:'images/cat_persian_adult.jpeg',   4:'images/cat_persian_adult.jpeg' },
+  abyssinian:{ 1:'images/cat_korean_kitten.jpeg',  2:'images/cat_korean_teen.jpeg',   3:'images/cat_abyssinian_adult.jpeg',4:'images/cat_abyssinian_senior.jpeg' },
+  maincoon:  { 1:'images/cat_korean_kitten.jpeg',  2:'images/cat_korean_teen.jpeg',   3:'images/cat_maincoon_adult.jpeg',  4:'images/cat_maincoon_senior.jpeg' },
+};
+
+// 무드별 이미지 (품종별, 없으면 korean fallback)
+const MOOD_IMGS = {
+  korean:    { normal:'images/mood_normal.jpeg', happy:'images/mood_happy.jpeg', bored:'images/mood_bored.jpeg', hungry:'images/mood_hungry.jpeg', litter:'images/mood_litter.jpeg', stress:'images/mood_stress.jpeg' },
+  russian:   { normal:'images/mood_russian_normal.jpeg', bored:'images/mood_russian_bored.jpeg', stress:'images/mood_russian_stress.jpeg' },
+  scottish:  { normal:'images/mood_scottish_normal.jpeg', stress:'images/mood_scottish_stress.jpeg', bored:'images/mood_scottish_bored.jpeg', litter:'images/mood_scottish_litter.jpeg', happy:'images/mood_scottish_happy.jpeg' },
+  persian:   { normal:'images/mood_persian_normal.jpeg', stress:'images/mood_persian_stress.jpeg', bored:'images/mood_persian_bored.jpeg', litter:'images/mood_persian_litter.jpeg', hungry:'images/mood_persian_hungry.jpeg', happy:'images/mood_persian_happy.jpeg' },
+  abyssinian:{ normal:'images/mood_abyssinian_normal.jpeg', stress:'images/mood_abyssinian_stress.jpeg', bored:'images/mood_abyssinian_bored.jpeg', litter:'images/mood_abyssinian_litter.jpeg' },
+  maincoon:  { normal:'images/mood_maincoon_normal.jpeg', bored:'images/mood_maincoon_bored.jpeg', stress:'images/mood_maincoon_stress.jpeg', litter:'images/mood_maincoon_litter.jpeg', happy:'images/mood_maincoon_happy.jpeg' },
+};
+
+// 이벤트 씬 이미지
+const EVENT_IMAGES = {
+  E001:'images/event_E001.jpeg', E002:'images/event_E002.jpeg', E003:'images/event_E003.jpeg',
+  E004:'images/event_E004.jpeg', E005:'images/event_E005.jpeg',
+  E006:'images/event_E006.jpeg',
+  E007:'images/event_E007.jpeg', E007b:'images/event_E007b.jpeg',
+  E008:'images/event_E008.jpeg', E009:'images/event_E009.jpeg',
+  E010:'images/event_E010.jpeg',
+  E011:'images/event_E011.jpeg', E011b:'images/event_E011b.jpeg',
+  E012:'images/event_E012.jpeg', E013:'images/event_E013.jpeg',
+};
+
+const NAME_SUGGESTIONS = {
+  korean:['나비','코코','보리','모모'],
+  russian:['루시','블루','미샤','은별'],
+  scottish:['폴디','스카치','쿠키','무무'],
+  persian:['페페','설이','구름','솜이'],
+  abyssinian:['아비','레오','치타','달리'],
+  maincoon:['맥스','코온','숲이','호랑'],
+};
+
+// 점수 체계: 정답 20 / 그럴듯한오답 10 / 착한척오답 5 / 이기적오답 0
+const CHAPTER_MAX_DAYS = { 1:7, 2:14, 3:9, 4:7 };
+
+const CHAPTERS = [
+  { id:1, name:'아기 시절', period:'입양 ~ 6개월', icon:'🐣', desc:'처음으로 집에 데려온 날부터\n예방접종, 중성화까지.\n모든 것이 새롭고 낯선 시간.' },
+  { id:2, name:'청소년기', period:'6개월 ~ 2년', icon:'🐈', desc:'에너지가 넘치고 호기심 왕성한 시기.\n여기서 만들어지는 루틴이\n평생 습관이 됩니다.' },
+  { id:3, name:'성묘기', period:'2년 ~ 7년', icon:'😺', desc:'일상이 자리를 잡는 시간.\n하지만 관리를 소홀히 하면\n건강 문제가 하나씩 찾아옵니다.' },
+  { id:4, name:'노령기', period:'7년 이후', icon:'🐈‍⬛', desc:'함께한 시간이 쌓인 만큼\n몸도 조금씩 느려집니다.\n마지막까지 곁에 있어주세요.' },
+];
+
+// 이벤트 정의 (chapters 배열 = 등장 가능한 챕터)
+const EVENTS = [
+// ── CHAPTER 1 ──────────────────
+{
+  id:'E001', chapters:[1], type:'mandatory', tag:'필수 이벤트', triggerDay:0,
+  emoji:'🏠', imgDesc:'[이미지: 켄넬 안에서 웅크리고 떨고 있는 아기 고양이. 새 집의 낯선 바닥이 보인다]',
+  title:'첫날 밤',
+  situation:'드디어 입양한 첫날. 켄넬에서 꺼내려고 하니 냥이가 안쪽 구석에 웅크리고 나오지 않는다. 조금 전부터 가늘게 떨고 있는 것 같기도 하다.',
+  choices:[
+    {text:'켄넬 문을 열어두고 조용히 자리를 피해준다. 스스로 나올 때까지 기다린다.', type:'correct', score:20, result:'몇 시간 후 냥이가 조심스럽게 나와 집 안을 탐색하기 시작한다. 첫날의 공포가 조금씩 호기심으로 바뀌고 있다.', expert:'고양이는 낯선 환경에서 숨는 것이 스트레스 해소 메커니즘. 강제로 꺼내는 것은 첫날부터 집사에 대한 공포심을 심어줄 수 있다.'},
+    {text:'냥이가 불안해 보여서 간식을 꺼내 손에 들고 유인해본다.', type:'plausible', score:10, result:'간식 냄새에 코를 씰룩이지만 선뜻 나오지는 않는다. 조금 후 조심조심 나와 간식만 채 가고 다시 숨는다. 그래도 나쁘지 않은 시작.', expert:'간식 유인 자체는 나쁘지 않지만, 첫날은 자연스럽게 두는 것이 더 좋다. 보상 연계가 너무 이르면 오히려 의존성이 생길 수 있다.'},
+    {text:'새 집에 빨리 적응하도록 꺼내서 집 구석구석 안고 구경시켜 준다.', type:'caring_wrong', score:5, result:'냥이가 공포에 질려 필사적으로 도망치려 한다. 가슴이 빠르게 뛰는 것이 느껴진다. 첫날부터 집사를 무서운 존재로 기억할 수도 있다.', expert:'강제 노출은 탈감각화가 아니라 공포 강화로 이어진다. 고양이는 스스로 탐색할 기회를 줘야 한다.'},
+    {text:'피곤하니까 일단 방문 닫고 내일 보자.', type:'selfish', score:0, result:'혼자 낯선 공간에 갇힌 냥이는 밤새 울었다. 집사는 잘 잤지만 냥이의 첫날은 최악이었다.', expert:'새 환경에서 완전히 고립되는 것은 극도의 스트레스. 적어도 자유롭게 탐색할 수 있는 공간은 열어줘야 한다.'},
+  ]
+},
+{
+  id:'E002', chapters:[1], type:'mandatory', tag:'필수 이벤트', triggerDay:2,
+  emoji:'💉', imgDesc:'[이미지: 동물병원 진료대 위에 올려진 작은 아기 고양이. 수의사가 청진기를 들고 있다]',
+  title:'첫 예방접종',
+  situation:'수의사가 종합백신 1차를 맞아야 한다고 한다. 그런데 진료비 청구서를 보니 검진비 포함 8만원이다. 그리고 2차, 3차 접종도 해야 한다고 한다.',
+  choices:[
+    {text:'비용이 있어도 예방접종 스케줄을 모두 맞춘다. 이건 선택이 아니라 기본이다.', type:'correct', score:20, result:'백신 접종 완료. 고양이 범백혈구감소증, 허피스바이러스 등 치명적인 질병에서 지킬 수 있게 됐다. 앞으로 1년마다 추가 접종 예정.', expert:'고양이 5종 종합백신(FVRCP)은 범백혈구감소증(치사율 50~90%), 허피스바이러스, 칼리시바이러스를 예방. 실내 고양이도 반드시 필요하다.'},
+    {text:'1차만 맞추고 2, 3차는 나중에 형편이 되면 맞추기로 한다.', type:'plausible', score:10, result:'1차 접종만으로는 충분한 면역이 형성되지 않는다. 다음 접종까지 공백이 생겨 방어력이 불완전한 상태가 지속된다.', expert:'백신 접종은 3차까지 맞아야 충분한 항체가 형성됨. 1차만으로는 60~70% 수준의 불완전한 면역. 스케줄 준수가 중요하다.'},
+    {text:'실내에서만 키우니까 굳이 맞출 필요 없을 것 같다.', type:'selfish', score:0, result:'실내 고양이라도 집사가 외출 후 신발이나 옷에 바이러스를 묻혀 올 수 있다. 예방접종 없이는 감염에 완전히 무방비 상태다.', expert:'실내 고양이도 외부 바이러스에 노출될 수 있음. 범백혈구감소증은 환경에서 1년 이상 생존하는 강력한 바이러스.'},
+    {text:'예방접종 대신 면역력에 좋다는 건강기능식품을 사서 먹인다.', type:'caring_wrong', score:5, result:'영양제는 일반적인 건강 보조이지 백신의 대체제가 아니다. 바이러스에 대한 특이적 항체는 백신으로만 만들어진다.', expert:'면역 보조제는 전반적인 건강에 도움을 줄 수 있지만, 특정 바이러스에 대한 항체를 만드는 백신과는 완전히 다른 개념이다.'},
+  ]
+},
+{
+  id:'E003', chapters:[1], type:'mandatory', tag:'필수 이벤트', triggerDay:6,
+  emoji:'⚕️', imgDesc:'[이미지: 수의사와 상담 중인 집사. 테이블 위에 고양이가 앉아있다]',
+  title:'중성화 수술 결정',
+  situation:'수의사가 생후 6개월이 가까워지면 중성화 수술을 권유한다. 수술비는 암컷 25만원, 수컷 15만원 수준. "지금 결정하지 않아도 되지만, 발정이 시작되면 고생할 수 있어요."',
+  choices:[
+    {text:'수의사 권고대로 적절한 시기에 중성화 수술을 예약한다.', type:'correct', score:20, result:'수술은 30분 내에 끝났고 다음 날부터 밥을 먹었다. 생식기 관련 질병 위험이 대폭 감소했고, 발정 스트레스에서도 해방됐다.', expert:'중성화 수술은 수컷 고환 종양·전립선 질환, 암컷 자궁축농증·유선 종양을 예방. 발정 스트레스 해소, 스프레이 마킹 90% 감소. 삶의 질이 올라간다.'},
+    {text:'수술비가 부담돼서 일단 미루고 발정이 심해지면 그때 결정한다.', type:'plausible', score:10, result:'발정기가 시작되자 냥이는 밤새 크게 울고 집 안 여기저기에 마킹을 시작했다. 결국 더 힘든 상황이 된 후에야 수술을 결정하게 됐다.', expert:'발정 행동(마킹, 울음)이 습관화되기 전에 수술하는 것이 효과적. 발정 후 수술을 해도 이미 학습된 행동이 남아있는 경우가 있다.'},
+    {text:'수술이 고양이 몸에 너무 무리가 될 것 같다. 자연스럽게 두고 싶다.', type:'caring_wrong', score:5, result:'실내에서 발정이 해소되지 않는 것이 오히려 큰 스트레스다. 암컷의 경우 발정이 반복될수록 유선 종양, 자궁축농증 위험이 높아진다.', expert:'수컷 중성화 수술은 15~30분의 간단한 시술. 마취 위험도 낮고 회복도 빠름. 수술 자체보다 방치가 훨씬 더 큰 위험 요소다.'},
+    {text:'비용도 아깝고 귀찮으니까 그냥 평생 안 한다.', type:'selfish', score:0, result:'발정 스트레스, 마킹, 야간 울음이 지속됐다. 수컷은 3년 후 전립선 문제가 생겼고, 암컷은 자궁축농증으로 더 큰 수술이 필요해졌다.', expert:'중성화하지 않은 암컷 고양이의 자궁축농증 발생률은 중년 이후 급격히 상승. 응급 수술 비용은 중성화 수술의 10배 이상.'},
+  ]
+},
+{
+  id:'E004', chapters:[1], type:'personality', tag:'개체 성격 이벤트', triggerDay:5,
+  emoji:'🍽️', imgDesc:'[이미지: 새 사료가 담긴 그릇 앞에서 냄새만 맡고 돌아서는 고양이]',
+  title:'사료를 안 먹어요',
+  situation:'냥이가 며칠 전부터 사료를 잘 안 먹기 시작했다. 수의사가 영양 균형을 위해 새 사료로 바꿔보길 권했는데, 새 사료를 내놓자 냄새만 맡고 돌아섰다. 3일째 거의 굶고 있다.',
+  choices:[
+    {text:'기존 사료와 새 사료를 나란히 놓아두고, 매주 새 사료 비율을 10%씩 천천히 늘린다.', type:'correct', score:20, result:'2주 후 새 사료로 완전 전환 성공. 식사량도 정상으로 돌아왔다. 사료 전환에도 방법이 있다는 것을 배웠다.', expert:'점진적 전환법: 기존 90% + 새 것 10%에서 시작해 7~14일에 걸쳐 비율을 바꿈. 두 그릇을 나란히 두어 고양이가 선택하게 하는 것도 효과적.'},
+    {text:'두 사료를 같은 그릇에 섞어서 준다. 어차피 다 먹겠지.', type:'plausible', score:10, result:'냥이가 그릇에서 낯선 냄새를 맡고 기존 사료까지 거부하기 시작했다. 상황이 더 나빠졌다.', expert:'고양이는 식품 안전에 극도로 예민. 섞인 그릇에서 낯선 냄새가 나면 전체를 경계하는 경향이 있다.'},
+    {text:'3일 굶었으니 충분히 배고프겠지. 새 사료만 계속 준다.', type:'selfish', score:0, result:'고양이가 72시간 이상 굶으면 지방간(간지질증)이 시작될 수 있다. 3일은 이미 위험한 수준이다.', expert:'고양이는 48~72시간 이상 굶으면 간지질증(지방간) 위험이 생기는 독특한 대사 특성이 있음. 굶기 전략은 절대 금물.'},
+    {text:'배고파 보여서 안쓰러우니까 좋아하는 간식과 파우치를 실컷 준다.', type:'caring_wrong', score:5, result:'냥이는 잘 먹지만 이제 일반 사료를 더욱 거부한다. 간식 의존도가 높아지고 영양 불균형이 심화됐다.', expert:'간식으로 대체하면 "사료 거부하면 더 좋은 것이 나온다"는 행동이 강화된다. 단기 해결처럼 보이지만 장기적으로 더 까다로운 식습관이 만들어진다.'},
+  ]
+},
+
+// ── CHAPTER 2 ──────────────────
+{
+  id:'E005', chapters:[2], type:'mandatory', tag:'일상 이벤트', triggerDay:2,
+  emoji:'🛋️', imgDesc:'[이미지: 소파 모서리를 신나게 긁고 있는 고양이. 소파 천이 너덜너덜하게 뜯겨 있다]',
+  title:'소파가 망가지고 있어',
+  situation:'냥이가 새 소파를 매일 긁어댄다. 벌써 모서리가 너덜너덜해졌다. 스크래처를 줬는데 쓰지도 않는다. 소파값이 100만원이 넘었는데.',
+  choices:[
+    {text:'소파 근처에 수직형 스크래처를 배치하고, 소파 모서리에 양면테이프를 붙여 일시적으로 막는다. 스크래처 사용 시 칭찬과 간식으로 보상한다.', type:'correct', score:20, result:'일주일 후 냥이가 소파 대신 스크래처를 사용하기 시작했다. 스크래칭은 막을 수 없지만, 올바른 곳으로 유도할 수 있다는 걸 알게 됐다.', expert:'고양이의 스크래칭은 발톱 관리, 영역 표시, 스트레칭의 본능적 행동. 절대 없앨 수 없고 올바른 장소로 유도하는 것이 유일한 방법. 스크래처는 고양이가 자주 가는 곳 근처에 수직으로 배치해야 효과적.'},
+    {text:'스크래칭할 때마다 큰 소리를 내서 놀라게 한다. 반복하면 학습할 것이다.', type:'plausible', score:10, result:'냥이가 집사 앞에서는 안 긁지만 혼자 있을 때 더 신나게 긁는다. 소파 피해는 계속되고, 집사와 있을 때 눈치를 보는 부작용이 생겼다.', expert:'처벌 기반 훈련은 고양이에게 효과적이지 않다. 행동을 학습으로 억제할 수 없고, 집사에 대한 불신만 키운다.'},
+    {text:'발톱을 아예 제거하는 발조제거술(Declawing)을 알아본다.', type:'selfish', score:0, result:'발조제거술은 단순 발톱 제거가 아니라 첫 번째 관절 뼈를 절단하는 수술이다. 한국을 포함 많은 나라에서 동물 학대로 간주한다.', expert:'발조제거술(Onychectomy)은 만성 통증, 보행 장애, 행동 문제를 유발하는 잔혹한 시술. 미국 수의학회도 권고하지 않으며, 국내에서도 동물보호법 위반 소지가 있다.'},
+    {text:'긁지 못하도록 발톱에 소프트클로(고무 발톱 커버)를 씌운다.', type:'caring_wrong', score:5, result:'당장은 스크래칭이 줄었지만 발톱을 쓰지 못하는 것이 스트레스로 작용한다. 2~3주마다 교체도 번거롭고 냥이도 불편해한다.', expert:'소프트클로는 임시방편. 스크래칭 본능 자체를 해소하지 못하면 스트레스가 다른 방식의 이상 행동으로 나타날 수 있다. 스크래처 유도가 근본적 해결책.'},
+  ]
+},
+{
+  id:'E006', chapters:[2], type:'personality', tag:'개체 성격 이벤트',
+  emoji:'🌙', imgDesc:'[이미지: 새벽 3시, 어두운 복도를 전력질주하는 고양이의 실루엣. 뭔가 떨어진 소리가 났다]',
+  title:'새벽 줌이',
+  situation:'새벽 3시, 냥이가 집 안을 전력질주하며 물건을 떨어뜨리고 있다. 쾅 하는 소리에 잠이 깼다. 내일 중요한 프레젠테이션이 있는데.',
+  choices:[
+    {text:'앞으로는 잠자리 들기 전 15분 이상 사냥 놀이로 에너지를 충분히 소진시킨다.', type:'correct', score:20, result:'2~3일 후 저녁에 실컷 놀고 나서 함께 잠드는 패턴이 만들어지기 시작했다. 냥이도 집사도 잘 자는 밤이 왔다.', expert:'고양이는 박명박모성 동물로 새벽-황혼에 활동적. 저녁에 사냥 놀이로 에너지를 충분히 소진하면 밤에 함께 자는 패턴이 형성된다. 하루 2~3회, 1회 15분 이상 권장.'},
+    {text:'방에 장난감을 잔뜩 넣어두고 문을 닫아버린다.', type:'plausible', score:10, result:'혼자 장난감은 별로 안 논다. 문을 긁고 울어서 더 시끄러워졌다.', expert:'고양이의 사냥 본능은 살아있는 것처럼 움직이는 대상에 반응. 정적인 장난감만으로는 사냥 욕구가 해소되지 않는다. 집사와의 상호작용이 필요하다.'},
+    {text:'오늘은 어쩔 수 없으니 소파에서 자면서 냥이와 방을 분리한다.', type:'selfish', score:0, result:'오늘 밤은 잔다. 하지만 근본적 해결 없이 분리만 반복하면 냥이의 에너지 문제가 계속된다.', expert:'분리는 당장의 수면을 위한 임시방편일 뿐. 에너지 발산 루틴을 만들지 않으면 이 패턴은 계속된다.'},
+    {text:'안쓰러워서 새벽에 일어나 같이 놀아준다.', type:'caring_wrong', score:5, result:'"새벽에 울면 집사가 일어나서 놀아준다"는 것이 학습됐다. 다음날 밤에도, 그 다음날에도 새벽 줌이가 반복된다.', expert:'행동 강화 원리: 울음에 보상(놀이)이 따르면 울음 행동이 강화됨. 새벽에 일어나서 호응하는 것은 흔한 실수 중 하나.'},
+  ]
+},
+{
+  id:'E007', chapters:[2], type:'breed', tag:'품종별 이벤트',
+  emoji:'🦴', imgDesc:'[이미지: 캣타워 아래에서 위를 올려다보는 스코티시폴드 고양이. 평소와 다르게 오르지 않는다]',
+  title:'움직임이 이상해',
+  situation:'스코티시폴드 냥이가 요즘 캣타워에 잘 오르지 않는다. 앉는 자세가 어딘가 어색하고, 꼬리를 잘 움직이지 않는 것 같다.',
+  breeds:['scottish'],
+  fallback:'E007b',
+  choices:[
+    {text:'동물병원에서 골연골이형성증 검진을 받는다. 낮은 계단형 캣타워로 교체하고 체중 관리를 시작한다.', type:'correct', score:20, result:'조기 진단으로 통증 관리 시작. 낮은 계단형 캣타워로 바꾸자 다시 올라가기 시작했다. 완치는 없지만 삶의 질을 유지할 수 있다.', expert:'스코티시폴드 75%가 골연골이형성증 보유. 폴드 유전자가 연골 전체에 영향을 미침. 완치 불가능하지만 통증 관리, 환경 수정으로 불편함을 줄일 수 있다.'},
+    {text:'뼈에 좋다는 칼슘과 비타민D 보충제를 사서 먹인다.', type:'plausible', score:10, result:'유전적 연골 구조 이상에 칼슘 보충은 효과 없다. 과잉 칼슘은 오히려 신장에 부담을 줄 수 있다.', expert:'골연골이형성증은 영양 문제가 아닌 유전적 구조 이상. 보충제로 개선되지 않으며 과다 보충은 위험할 수 있다.'},
+    {text:'활동이 줄어든 것 같아서 더 놀게 하려고 장난감으로 계속 유도한다.', type:'selfish', score:0, result:'관절 통증이 있는 상태에서 억지 운동은 통증을 악화시킨다. 냥이가 집사를 피하기 시작한다.', expert:'통증 있는 관절에 무리한 운동은 염증 악화. 운동 강도는 수의사와 상담 후 결정해야 한다.'},
+    {text:'힘들까봐 캣타워를 아예 치워버린다.', type:'caring_wrong', score:5, result:'고양이는 높은 곳에 오르려는 본능이 있다. 수직 공간을 완전히 없애면 스트레스가 증가한다.', expert:'높은 곳은 고양이에게 안전감과 영역 인식을 제공. 완전 제거 대신 낮은 계단형으로 교체하는 것이 정답.'},
+  ]
+},
+{
+  id:'E007b', chapters:[2], type:'mandatory', tag:'일상 이벤트', triggerDay:11,
+  emoji:'✂️', imgDesc:'[이미지: 발톱을 깎으려는 집사와 저항하는 고양이]',
+  title:'발톱 관리의 전쟁',
+  situation:'처음으로 발톱을 깎으려고 했더니 냥이가 극렬하게 저항한다. 발버둥치고 할퀴고... 발톱 하나도 못 깎았다.',
+  choices:[
+    {text:'한 번에 다 깎으려 하지 말고, 하루에 발톱 하나씩 시도한다. 성공할 때마다 간식으로 보상한다.', type:'correct', score:20, result:'2주 후 아직 신나진 않지만 발버둥 없이 발톱을 깎을 수 있게 됐다. 조급하지 않은 것이 핵심이었다.', expert:'고양이 발톱 관리는 어릴 때부터 점진적으로 익숙하게 만드는 것이 중요. 한 번에 완료하려는 시도는 트라우마를 만든다.'},
+    {text:'수건으로 감싸서 도망가지 못하게 고정하고 빠르게 깎는다.', type:'plausible', score:10, result:'물리적으로는 성공했지만 냥이에게 극심한 스트레스를 줬다. 다음엔 수건만 봐도 도망간다.', expert:'타월 랩은 응급 시 사용하는 방법. 일상적인 발톱 관리에 사용하면 관리 자체에 대한 공포 트라우마가 생긴다.'},
+    {text:'귀찮으니까 그냥 발톱 관리 안 해도 되지 않을까.', type:'selfish', score:0, result:'발톱이 너무 길어지면 카펫이나 천에 걸려 부러질 수 있고, 안쪽으로 자라 발바닥을 파고드는 경우도 생긴다.', expert:'실내 고양이는 발톱이 자연 마모되지 않아 주기적 관리 필요. 방치 시 발톱이 고리 모양으로 자라 발바닥을 찌르는 내성 발톱이 될 수 있다.'},
+    {text:'아프지 않도록 발톱을 뭉툭하게 갈아버린다.', type:'caring_wrong', score:5, result:'뭉툭하게 갈면 오히려 발톱 단면이 거칠어져 더 잘 긁힌다. 올바른 방법은 앞쪽 투명한 부분만 살짝 잘라내는 것이다.', expert:'발톱 안쪽의 핑크색 혈관(퀵)을 자르면 출혈과 통증이 생김. 투명한 앞부분 2~3mm만 잘라내는 것이 올바른 방법.'},
+  ]
+},
+
+// ── CHAPTER 3 ──────────────────
+{
+  id:'E008', chapters:[3], type:'behavior', tag:'행동연동 이벤트', triggerDay:3,
+  emoji:'⚖️', imgDesc:'[이미지: 집사가 고양이를 체중계에 올려놓고 있다. 고양이가 통통해 보인다]',
+  title:'비만 경고',
+  situation:'정기검진에서 수의사가 "체중이 많이 늘었네요. 비만 직전이에요"라고 했다. 냥이는 밥 먹고 하루 종일 잔다. 밥 달라고 보챌 때마다 줬는데.',
+  choices:[
+    {text:'수의사에게 하루 적정 칼로리를 확인하고 제한 급식으로 전환한다. 간식은 칼로리의 10% 이내로 제한한다.', type:'correct', score:20, result:'처음엔 더 보채지만 3주 후 적응했다. 2개월 후 체중이 목표 범위로 돌아왔다. 움직임도 눈에 띄게 활발해졌다.', expert:'고양이 비만(체중의 20% 이상 초과)은 당뇨, 관절염, 지방간, 심장 질환의 주요 위험 요인. 수의사 상담을 통한 칼로리 계산이 기본. 실내 고양이의 60% 이상이 과체중.'},
+    {text:'다이어트 사료로 바꾸면 되겠지. 이전과 같은 양을 준다.', type:'plausible', score:10, result:'다이어트 사료도 과급여하면 효과가 없다. 칼로리는 사료의 종류보다 먹는 양이 더 중요하다.', expert:'다이어트 사료는 열량 밀도는 낮지만, 총 급여량을 줄이지 않으면 의미가 없다. 칼로리 총량 관리가 핵심.'},
+    {text:'보채는 게 불쌍해서 달라는 만큼 계속 준다. 배고프면 안 되잖아.', type:'selfish', score:0, result:'6개월 후 당뇨 전단계 판정. 체중이 더 늘면서 관절에도 무리가 가기 시작했다. 사랑이 독이 될 수 있다는 걸 몰랐다.', expert:'고양이는 배부름 신호가 둔하고 음식을 보면 계속 먹으려는 경향이 있다. 달라는 대로 주는 것은 사랑이 아니라 건강을 해치는 행동이다.'},
+    {text:'배고파 보이니까 운동 겸 먹이 퍼즐 장난감에 사료를 가득 채워준다.', type:'caring_wrong', score:5, result:'퍼즐 피더 방향은 좋지만 사료를 가득 채우면 결국 다 먹는다. 총 칼로리가 줄지 않으면 체중은 그대로다.', expert:'퍼즐 피더는 좋은 도구지만 총 급여량을 조절하지 않으면 효과 없음. 먹는 속도를 늦추는 것과 먹는 양을 줄이는 것은 별개 문제.'},
+  ]
+},
+{
+  id:'E009', chapters:[3], type:'behavior', tag:'행동연동 이벤트', triggerDay:6,
+  emoji:'🚨', imgDesc:'[이미지: 화장실 앞에서 힘을 주며 앉아있는 고양이. 30분째 자세를 취하고 있다]',
+  title:'화장실에서 나오지 않아',
+  situation:'수컷 냥이가 화장실 앞에 앉아 계속 힘을 준다. 30분째인데 소변이 거의 나오지 않는다. 작은 물방울만 나오고 또 자세를 잡는다. 배를 살짝 만져보니 단단한 것 같다.',
+  choices:[
+    {text:'즉시 동물병원으로 간다. 수컷 고양이의 요로 폐색은 응급 상황이다.', type:'correct', score:20, result:'요도 부분 폐색 진단. 즉각 처치로 회복했다. 수의사가 "한 시간만 더 늦었으면 더 위험할 수도 있었어요"라고 했다.', expert:'수컷 고양이 요도 폐색은 24~48시간 내 신부전·사망으로 이어질 수 있는 응급 상황. 소변을 못 누는 것이 확인되면 즉시 병원. 망설일 시간이 없다.'},
+    {text:'물을 더 마시게 하려고 물그릇을 여러 곳에 놓는다.', type:'plausible', score:10, result:'예방적으로는 맞는 방향이지만 이미 폐색이 진행 중인 상황에서는 너무 늦다. 소중한 골든타임이 지나간다.', expert:'음수량 증가는 FLUTD 예방에 중요하지만 이미 폐색 상태에서는 가정 내 처치로 해결 불가. 폐색 = 즉시 병원이 절대 원칙.'},
+    {text:'병원비가 걱정돼서 내일까지 지켜보기로 한다.', type:'selfish', score:0, result:'다음날 아침 냥이가 구석에 쓰러져 있었다. 응급실에서 신부전 초기 판정을 받았다. 하룻밤의 망설임이 수십만 원을 더 쓰게 만들었다.', expert:'수컷 고양이 요도 폐색 사망률: 처치 없이 24시간 내 급격히 악화. 병원비 아끼려다 더 큰 비용과 최악의 결과를 맞을 수 있다.'},
+    {text:'따뜻한 물에 앉혀서 소변을 유도해본다.', type:'caring_wrong', score:5, result:'물리적으로 막힌 요도는 온찜으로 뚫리지 않는다. 고통스러워하는 냥이에게 시간만 낭비했다.', expert:'요도 폐색은 반드시 수의학적 처치(카테터 삽입 등)가 필요. 가정 내 처치는 효과 없고 통증만 가중시킨다.'},
+  ]
+},
+{
+  id:'E010', chapters:[3], type:'personality', tag:'개체 성격 이벤트',
+  emoji:'🏠', imgDesc:'[이미지: 이사한 새 집에서 구석에 웅크려 있는 고양이. 매트 위에 소변 흔적이 보인다]',
+  title:'이사 후 화장실 실수',
+  situation:'이사한 지 이틀째, 냥이가 화장실 대신 새 소파 위에 소변을 봤다. 화장실은 어제 청소해서 깨끗하다. 소파가 젖어있는 것을 발견한 건 집에 돌아오고 나서였다.',
+  choices:[
+    {text:'스트레스 원인(낯선 환경)을 이해한다. 페로몬 디퓨저를 켜고 화장실을 냥이가 자주 가는 곳 근처로 이동. 사고 부위는 효소 세정제로 완전히 냄새를 없앤다.', type:'correct', score:20, result:'며칠 후 새 화장실을 사용하기 시작했다. 냄새가 남아있었다면 같은 자리에 계속 쌌을 것이다.', expert:'고양이 화장실 외 배변은 스트레스성인 경우가 많음. 소변 냄새(암모니아)가 남아있으면 같은 자리에 반복 배변. 효소 세정제가 필수인 이유.'},
+    {text:'모래 종류가 문제인 것 같아서 새 모래로 교체한다.', type:'plausible', score:10, result:'이사 스트레스에 모래 변경까지 더해지며 혼란이 가중됐다. 이미 쓰던 모래를 그대로 유지하는 것이 더 나았다.', expert:'환경 변화 직후에는 변화를 최소화하는 것이 원칙. 익숙한 모래와 그릇은 그대로 유지해야 안정감을 준다.'},
+    {text:'혼내고 화장실 앞에 데려가 억지로 앉힌다.', type:'selfish', score:0, result:'고양이는 혼남의 맥락을 이해하지 못한다. 집사에 대한 공포심만 생기고, 화장실 자체를 위험한 장소로 인식하게 된다.', expert:'고양이에게 사후 체벌은 의미 없음. 배변 실수 후 화장실에 데려가는 것은 오히려 화장실 기피를 만들 수 있다.'},
+    {text:'냥이가 불쌍해서 소파 위에 흡수 패드를 깔아준다.', type:'caring_wrong', score:5, result:'소파에서 계속 볼일을 보는 패턴이 고착화된다. 근본 원인은 해결되지 않았다.', expert:'사고 장소를 허용하는 것은 잘못된 장소에서의 배변을 강화한다. 원인 해결 없이 편의만 제공하면 습관이 된다.'},
+  ]
+},
+{
+  id:'E011', chapters:[3], type:'breed', tag:'품종별 이벤트',
+  emoji:'👁️', imgDesc:'[이미지: 페르시안 고양이의 눈 주변. 갈색으로 착색된 눈물자국과 빨개진 눈이 보인다]',
+  title:'눈이 계속 촉촉해',
+  situation:'페르시안 냥이 눈 주변이 항상 젖어있고 갈색으로 착색돼 있다. 최근엔 한쪽 눈을 자주 깜빡이고 앞발로 비비는 것 같다.',
+  breeds:['persian'],
+  fallback:'E011b',
+  choices:[
+    {text:'하루 2회 생리식염수에 적신 거즈로 눈 주변을 닦는 루틴을 시작한다. 깜빡임 증상이 있어 바로 병원을 방문한다.', type:'correct', score:20, result:'초기 각막염 진단. 처방 점안액으로 빠르게 호전됐다. 이제 매일 눈을 닦아주는 것이 일상이 됐다.', expert:'페르시안은 단두종으로 눈물관이 짧아 눈물이 넘침. 방치 시 세균 번식 → 피부염 → 각막염으로 진행. 심하면 각막 궤양과 시력 손상 위험.'},
+    {text:'눈물자국 제거 크림을 인터넷에서 구매해서 눈 주변에 발라준다.', type:'plausible', score:10, result:'각막 자극이 있는 상태에서 검증되지 않은 크림 사용은 각막염을 악화시킬 수 있다.', expert:'눈 자극 증상이 있을 때는 반드시 수의사 처방 제품만 사용. 미검증 미용 제품은 눈에 직접적 위험을 줄 수 있다.'},
+    {text:'다른 페르시안도 눈물자국은 다 있으니 그냥 둔다.', type:'selfish', score:0, result:'세균이 번식하며 피부염이 생겼다. 각막염이 진행되어 결국 더 비싼 치료가 필요해졌다.', expert:'눈물자국 자체는 품종 특성이지만 방치는 금물. 지속적인 관리 없이는 감염으로 이어지는 것이 일반적이다.'},
+    {text:'눈물이 많이 나서 불편할 것 같아 자주 손으로 닦아준다.', type:'caring_wrong', score:5, result:'손에 있는 세균이 눈에 직접 닿는다. 각막염 악화 원인이 됐다.', expert:'안구 처치 시 반드시 멸균 거즈 또는 전용 와이프 사용. 손 직접 접촉은 세균 감염 위험이 높다.'},
+  ]
+},
+{
+  id:'E011b', chapters:[3], type:'behavior', tag:'행동연동 이벤트', triggerDay:8,
+  emoji:'🦷', imgDesc:'[이미지: 수의사가 고양이의 입을 벌려 치아를 확인하고 있다. 치석이 심하게 끼어있다]',
+  title:'입 냄새가 심해',
+  situation:'냥이 입에서 냄새가 심하게 난다. 밥을 먹을 때 한쪽으로만 씹는 것 같고, 가끔 앞발로 입 주위를 긁는다. 잇몸이 빨개 보인다.',
+  choices:[
+    {text:'동물병원에서 구강 검진과 스케일링을 받는다. 이후 매일 양치 루틴을 시작한다.', type:'correct', score:20, result:'치석 제거 후 통증이 줄었다. 이제 격일 양치를 하고 있다. 3세 이상 고양이의 70%가 치주 질환이 있다는 걸 그제야 알았다.', expert:'고양이 치주 질환은 혈류를 통해 신장, 심장에 영향을 줄 수 있다. 이미 생긴 치석은 스케일링으로만 제거 가능. 이후 양치로 재발 예방.'},
+    {text:'딱딱한 건사료로 바꾸면 씹으면서 치석이 제거된다고 들었다.', type:'plausible', score:10, result:'일반 건사료는 치석 제거 효과가 미미하다. 이미 진행된 치주염에는 아무 효과 없이 병원 치료가 지연됐다.', expert:'일반 건사료는 치석 예방 효과가 거의 없음. 치석 제거 효능이 있는 것은 VOHC 인증 전용 덴탈 사료뿐.'},
+    {text:'양치는 고양이가 너무 싫어하고 나도 할퀴여서 평생 안 한다.', type:'selfish', score:0, result:'치주염이 지속 진행됐다. 2년 후 발치 수술이 필요해졌다. 이빨 없이 무른 음식만 먹게 됐다.', expert:'고양이 양치는 어릴 때부터 단계적으로 익숙하게 만들어야 한다. 귀찮아서 평생 안 하면 치주 질환 + 전신 건강에 영향.'},
+    {text:'치아에 좋다는 덴탈 간식을 매일 넉넉히 준다.', type:'caring_wrong', score:5, result:'덴탈 간식은 보조 수단이지 양치의 대체가 아니다. 과다 급여로 비만 위험만 더해졌다.', expert:'VOHC 인증 덴탈 제품도 양치의 대체재가 될 수 없다. 기계적 제거(칫솔질)만이 치석을 실질적으로 예방한다.'},
+  ]
+},
+
+// ── CHAPTER 4 ──────────────────
+{
+  id:'E012', chapters:[4], type:'mandatory', tag:'노령 이벤트', triggerDay:2,
+  emoji:'💊', imgDesc:'[이미지: 동물병원에서 혈액 검사 결과지를 보는 집사. 신장 수치가 높게 표시되어 있다]',
+  title:'신장 수치가 높아요',
+  situation:'10살이 된 냥이의 정기검진에서 신장 수치가 정상보다 높게 나왔다. 수의사가 "고양이 사망 원인 1위가 신장 질환입니다. 이제부터 관리가 중요해요"라고 한다.',
+  choices:[
+    {text:'수의사와 상담해 처방 신장 사료로 바꾸고 음수량 늘리기, 3개월마다 추적 검사를 시작한다.', type:'correct', score:20, result:'처방 사료와 음수량 관리로 수치가 안정됐다. 3년이 지난 지금도 함께하고 있다. 조기 발견이 전부였다.', expert:'고양이 만성 신장 질환은 10세 이상의 30~40%에서 나타남. 완치 없지만 처방 사료(저단백, 저인), 음수량 관리, 정기 모니터링으로 진행을 늦출 수 있다.'},
+    {text:'아직 증상이 없으니 수치가 더 나빠지면 그때 대응한다.', type:'plausible', score:10, result:'신장 질환은 증상이 나타날 때는 이미 70% 이상이 손상된 상태. 증상 없을 때가 관리 골든타임이다.', expert:'고양이 신장은 75% 이상 손상돼야 증상이 나타남. 수치 이상이 발견됐을 때가 실질적으로 개입 가능한 마지막 기회인 경우가 많다.'},
+    {text:'처방 사료가 비싸서 일반 사료를 계속 준다.', type:'selfish', score:0, result:'신장 질환이 빠르게 진행됐다. 결국 신부전이 왔고, 마지막 6개월은 매주 병원에서 수액 치료를 받아야 했다. 비용도 훨씬 더 들었다.', expert:'처방 사료 비용이 아깝더라도, 진행 후 수액 치료·입원 비용과 비교하면 훨씬 경제적. 무엇보다 냥이와 함께하는 시간이 달라진다.'},
+    {text:'신장에 좋다는 크랜베리 건강기능식품을 인터넷에서 구매해 먹인다.', type:'caring_wrong', score:5, result:'인체용 영양제를 고양이에게 임의로 먹이는 것은 위험할 수 있다. 처방 식이 치료를 대체하지도 못한다.', expert:'인체용 제품을 고양이에게 먹이는 것은 성분이 달라 위험할 수 있음. 신장 질환 관리는 반드시 수의사 처방 기반으로.'},
+  ]
+},
+{
+  id:'E013', chapters:[4], type:'mandatory', tag:'노령 이벤트', triggerDay:5,
+  emoji:'🌙', imgDesc:'[이미지: 밤중에 이유 없이 울고 있는 노령 고양이. 눈빛이 흐릿하고 방향을 잃은 듯한 표정이다]',
+  title:'밤에 이유 없이 울어',
+  situation:'13살이 된 냥이가 밤마다 방향을 잃은 것처럼 울기 시작했다. 밥도 잘 먹고 화장실도 잘 가는데, 밤에 갑자기 크게 우는 게 반복된다. 치매인걸까?',
+  choices:[
+    {text:'동물병원에서 갑상선, 인지 기능 저하 등 노령 검진을 받는다. 원인에 따라 수의사 지시대로 관리한다.', type:'correct', score:20, result:'갑상선 항진증 초기 진단. 약물로 관리 시작 후 야간 울음이 줄었다. 노령 증상을 당연하게 여기지 않은 것이 옳았다.', expert:'노령 고양이의 야간 울음은 고혈압, 갑상선 항진증, 인지 기능 저하(고양이 치매), 청력 저하 등 다양한 원인이 있음. 노령 정기 검진이 중요한 이유.'},
+    {text:'나이가 들면 다 그러려니 한다. 별일 아닐 것이다.', type:'plausible', score:10, result:'갑상선 항진증 치료 없이 2년이 지나자 체중이 급격히 줄고 심장에까지 영향을 미쳤다. 당연하게 여긴 것이 화근이었다.', expert:'노령 고양이의 이상 행동을 나이 탓으로만 돌리는 것은 위험. 많은 노령 질환이 조기 발견 시 충분히 관리 가능하다.'},
+    {text:'잠을 못 자서 힘드니까 냥이를 방에 가두고 문을 닫고 잔다.', type:'selfish', score:0, result:'방에 갇힌 노령 냥이는 더 혼란스러워했다. 혼자 울다 가구에 부딪히는 소리가 들렸다. 다음날 기운이 더 없어 보였다.', expert:'인지 기능이 저하된 노령 고양이를 고립시키면 혼란과 공포가 증가한다. 야간 울음이 지속되면 원인 파악이 우선.'},
+    {text:'낮에 더 많이 놀아줘서 밤에 피곤하게 만들어본다.', type:'caring_wrong', score:5, result:'노령 고양이에게 무리한 활동은 오히려 부담. 야간 울음의 원인이 에너지 문제가 아닌 경우가 대부분이라 효과도 없었다.', expert:'노령 고양이의 적정 운동 강도는 젊었을 때와 다름. 야간 울음은 에너지 소모가 아닌 의학적 접근이 필요한 증상.'},
+  ]
+},
+];
+
+// 챕터별 이벤트 ID 시퀀스 (고정 순서)
+const CHAPTER_EVENTS = {
+  1: ['E001','E002','E003','E004'],
+  2: ['E005','E006','E007_or_E007b'],
+  3: ['E008','E009','E010','E011_or_E011b'],
+  4: ['E012','E013'],
+};
+
+// ═══════════════════════════════
+// SHOP ITEMS DATA
+// ═══════════════════════════════
+const SHOP_ITEMS = [
+  { id:'autoFeeder',    category:'자동화',   icon:'🤖', name:'자동급식기',      price:'30,000~80,000원', desc:'정해진 시간에 자동 급식. 허기 수치 자동 관리.', effect:'hunger_auto' },
+  { id:'waterFountain', category:'자동화',   icon:'⛲', name:'자동급수기(정수기)', price:'20,000~60,000원', desc:'흐르는 물로 음수량 증가. 수분 수치 자동 관리.', effect:'hydration_auto' },
+  { id:'litterMedium',  category:'화장실',   icon:'🟫', name:'중형 화장실', price:'20,000~50,000원',  desc:'기본 소형보다 넓어서 고양이가 더 편안해합니다.', effect:'litter_size' },
+  { id:'litterLarge',   category:'화장실',   icon:'⬛', name:'대형 화장실', price:'40,000~100,000원', desc:'넓은 공간. 고양이 만족도 최고. 청소 면적 증가.', effect:'litter_size' },
+  { id:'autoLitter',    category:'화장실',   icon:'🚿', name:'자동 화장실',      price:'100,000~400,000원', desc:'자동 청소로 화장실 미니게임 스킵.', effect:'litter_auto' },
+  { id:'autoToy',       category:'자동화',   icon:'🌀', name:'자동 장난감',      price:'15,000~50,000원', desc:'놀이 수치 일부 자동 해소. 단, 시간이 지날수록 흥미 감소.', effect:'play_auto' },
+  { id:'catTower',      category:'환경',     icon:'🏰', name:'캣타워',           price:'50,000~200,000원', desc:'스트레스 수치 감소. 고양이 안정감 향상.', effect:'stress_reduce' },
+  { id:'scratcher',     category:'환경',     icon:'🪵', name:'스크래처',         price:'10,000~30,000원', desc:'스크래칭 본능 해소. 가구 피해 이벤트 확률 감소.', effect:'scratch_ok' },
+  { id:'groomingKit',   category:'도구',     icon:'🪮', name:'빗질 도구 세트',   price:'10,000~40,000원', desc:'빗질 효율 향상. 털 제거량 증가.', effect:'groom_boost' },
+  { id:'nailClipper',   category:'도구',     icon:'✂️', name:'발톱깎이',         price:'5,000~20,000원', desc:'발톱 관리 가능. 없으면 발톱 관리 불가.', effect:'nail_enable' },
+  { id:'toothBrush',    category:'도구',     icon:'🪥', name:'고양이 칫솔·치약 세트', price:'5,000~15,000원', desc:'양치질 가능. 없으면 양치 불가.', effect:'teeth_enable' },
+];
+
+// ═══════════════════════════════
+// GAME STATE
+// ═══════════════════════════════
+let G = {
+  breed: null,
+  name: '',
+  score: 0,
+  chapter: 1,
+  eventQueue: [],
+  eventIndex: 0,
+  chapterScores: [0,0,0,0],
+  totalMax: 0,
+  currentChoices: [],
+  // ── ROOM SYSTEM ──
+  day: 1,              // current day in chapter (1~14)
+  stats: {
+    hunger: 100,       // 0~100
+    hydration: 100,
+    litter: 100,
+    play: 100,
+    groom: 100,
+    stress: 0,         // 0~100 (높을수록 나쁨)
+    obesity: 0,        // 0~100
+    dental: 100,       // 치아 상태
+    nail: 100,         // 발톱 상태
+  },
+  careToday: {         // 오늘 한 케어
+    feed: false,
+    water: false,
+    litter: false,
+    play: false,
+    groom: false,
+    nail: false,
+    teeth: false,
+    treatCount: 0,
+  },
+  shop: {              // 구매한 아이템
+    autoFeeder: false,
+    waterFountain: false,
+    autoLitter: false,
+    autoToy: 0,        // 0=없음, 1~10=흥미도
+    catTower: false,
+    scratcher: false,
+    groomingKit: false,
+    nailClipper: false,
+    toothBrush: false,
+  },
+  autoToyDays: 0,      // 자동장난감 경과 일수
+  lastNailDay: -99,    // 마지막 발톱 자른 날 (절대 day)
+  lastTeethDay: -99,   // 마지막 양치 날
+  absoluteDay: 0,      // 전체 day (챕터 넘어가도 누적)
+  // 챕터별 이벤트 발생 day (buildEventQueue에서 세팅)
+  eventDays: [],
+  // 가계부 & 소모품
+  ledger: [],          // {label, cost, day} 지출 기록
+  foodTurns: 0,
+  litterTurns: 0,
+  lureTurns: 0,
+  initialCostShown: false,
+  // ── 미니게임 세션 (당일 재진입 시 이어서) ──
+  litterSession: { cells: null, totalGroups: 0, removedGroups: 0, dayGenerated: -1, cols: 0 },
+  playSession:   { filled: 0, need: 0, catchCount: 0, lastWasCatch: false, day: -1 },
+  groomSession:  { progress: 0, strokes: 0, day: -1 },
+  teethSession:  { zones: null, day: -1 },
+};
+
+// ═══════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById('s-'+screenId);
+  if(el) el.classList.add('active');
+}
+
+// ═══════════════════════════════
+// BREED SELECT
+// ═══════════════════════════════
+function initBreedSelect() {
+  const grid = document.getElementById('breed-grid');
+  grid.innerHTML = BREEDS.map(b=>`
+    <div class="breed-card" onclick="selectBreed('${b.id}',this)">
+      ${BREED_IMAGES[b.id]
+        ? `<img class="breed-card-img" src="${BREED_IMAGES[b.id]}" alt="${b.name}">`
+        : `<div class="breed-emoji">${b.emoji}</div>`}
+      <div class="breed-name">${b.name}</div>
+      <div class="breed-trait">${b.trait}</div>
+      <div class="breed-diff ${b.diffClass}">난이도: ${b.diff}</div>
+    </div>
+  `).join('');
+  goTo('breed');
+}
+
+function selectBreed(id, el) {
+  G.breed = id;
+  document.querySelectorAll('.breed-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('breed-confirm').classList.add('ready');
+}
+
+function confirmBreed() {
+  if(!G.breed) return;
+  initNameInput();
+}
+
+// ═══════════════════════════════
+// NAME INPUT
+// ═══════════════════════════════
+function initNameInput() {
+  const breed = BREEDS.find(b=>b.id===G.breed);
+  document.getElementById('name-breed-label').textContent = breed.name + ' 고양이를 선택했어요';
+  const suggs = NAME_SUGGESTIONS[G.breed] || ['냥이','나비','코코','모모'];
+  document.getElementById('name-suggestions').innerHTML = suggs.map(n=>
+    `<span class="name-chip" onclick="setName('${n}')">${n}</span>`
+  ).join('');
+  document.getElementById('name-input').value = '';
+  goTo('name');
+}
+
+function setName(n) {
+  document.getElementById('name-input').value = n;
+}
+
+function confirmName() {
+  const val = document.getElementById('name-input').value.trim();
+  G.name = val || '냥이';
+  G.chapter = 1;
+  G.score = 0;
+  G.chapterScores = [0,0,0,0];
+  G.absoluteDay = 0;
+  showChapterIntro(1);
+}
+
+// ═══════════════════════════════
+// CHAPTER INTRO
+// ═══════════════════════════════
+function showChapterIntro(chNum) {
+  G.chapter = chNum;
+  buildEventQueue(chNum);
+  const ch = CHAPTERS[chNum-1];
+  document.getElementById('ci-icon').textContent = ch.icon;
+  document.getElementById('ci-num').textContent = 'CHAPTER ' + chNum;
+  document.getElementById('ci-name').textContent = ch.name;
+  document.getElementById('ci-period').textContent = ch.period;
+  document.getElementById('ci-desc').textContent = ch.desc;
+  document.getElementById('ci-btn').textContent = chNum===1?'입양하기':'다음 챕터 시작';
+
+  // progress dots
+  const dots = document.getElementById('ci-dots');
+  dots.innerHTML = [1,2,3,4].map(i=>
+    `<div class="dot ${i<chNum?'done':i===chNum?'active':''}"></div>`
+  ).join('');
+
+  goTo('chapter-intro');
+}
+
+function buildEventQueue(chNum) {
+  const eventsForChapter = EVENTS.filter(e=>e.chapters.includes(chNum));
+  const queue = [];
+
+  eventsForChapter.forEach(e=>{
+    if(e.breeds && !e.breeds.includes(G.breed)) return;
+    if(e.id.endsWith('b') && !e.id.endsWith('11b')) {
+      const parent = EVENTS.find(p=>p.fallback===e.id);
+      if(parent) return;
+    }
+    queue.push(e.id);
+  });
+
+  EVENTS.filter(e=>e.chapters.includes(chNum) && e.fallback).forEach(e=>{
+    const breedMatch = e.breeds && e.breeds.includes(G.breed);
+    if(!breedMatch) {
+      const idx = queue.indexOf(e.id);
+      if(idx>-1) queue.splice(idx,1);
+      if(!queue.includes(e.fallback)) queue.push(e.fallback);
+    }
+  });
+
+  // 이벤트를 triggerDay 오름차순으로 정렬 (day:0 먼저, auto는 뒤로)
+  queue.sort((a,b)=>{
+    const ea = EVENTS.find(e=>e.id===a);
+    const eb = EVENTS.find(e=>e.id===b);
+    const da = (ea && ea.triggerDay !== undefined) ? ea.triggerDay : 999;
+    const db = (eb && eb.triggerDay !== undefined) ? eb.triggerDay : 999;
+    return da - db;
+  });
+
+  G.eventQueue = queue;
+  G.eventIndex = 0;
+
+  // triggerDay 있으면 그대로, 없으면 남은 슬롯에 균등 배분
+  const usedDays = [];
+  const autoSlots = [];
+  const tempDays = new Array(queue.length).fill(null);
+
+  queue.forEach((eid, i) => {
+    const ev = EVENTS.find(e=>e.id===eid);
+    if(ev && ev.triggerDay !== undefined) {
+      tempDays[i] = ev.triggerDay;
+      if(ev.triggerDay > 0) usedDays.push(ev.triggerDay);
+    } else {
+      autoSlots.push(i);
+    }
+  });
+
+  const autoCount = autoSlots.length;
+  autoSlots.forEach((slotIdx, j) => {
+    let day = Math.round((14 / (autoCount + 1)) * (j + 1));
+    while(usedDays.includes(day) && day < 14) day++;
+    tempDays[slotIdx] = day;
+    usedDays.push(day);
+  });
+
+  G.eventDays = tempDays.map(d => d !== null ? d : 7);
+}
+
+function startChapter() {
+  G.eventIndex = 0;
+  G.day = 1;
+  resetCareToday();
+
+  const proceed = () => {
+    // day:0 이벤트(첫날밤 등)가 있으면 룸 전에 즉시 발동
+    if(G.eventDays[0] === 0) {
+      showNextEvent();
+    } else {
+      showRoom();
+    }
+  };
+
+  if(G.chapter === 1 && !G.initialCostShown) {
+    G.initialCostShown = true;
+    showInitialCostPopup(proceed);
+  } else {
+    proceed();
+  }
+}
+
+// ═══════════════════════════════
+// ROOM SCREEN
+// ═══════════════════════════════
+const CHAPTER_NAMES = ['아기 시절','청소년기','성묘기','노령기'];
+
+function resetCareToday() {
+  G.careToday = { feed:false, water:false, litter:false, play:false, groom:false, nail:false, teeth:false, treatCount:0 };
+}
+
+function getStatColor(val, isStress) {
+  if(isStress) {
+    if(val>60) return 'danger';
+    if(val>30) return 'warning';
+    return '';
+  }
+  if(val<=25) return 'danger';
+  if(val<=50) return 'warning';
+  return '';
+}
+
+function getCatMood() {
+  const s = G.stats;
+  if(s.stress>70) return { emoji:'😾', mood:'매우 스트레스받고 있어요', imgKey:'stress' };
+  if(s.stress>40) return { emoji:'😿', mood:'힘들어 보여요', imgKey:'stress' };
+  if(s.hunger<30 || s.hydration<30) return { emoji:'🙀', mood:'배고프고 목말라요!', imgKey:'hungry' };
+  if(s.litter<25) return { emoji:'😾', mood:'화장실이 너무 더러워요', imgKey:'litter' };
+  if(s.play<30) return { emoji:'😒', mood:'심심해요...', imgKey:'bored' };
+  if(s.hunger>80 && s.hydration>80 && s.litter>70) return { emoji:'😸', mood:'기분이 아주 좋아요!', imgKey:'happy' };
+  return { emoji:'😺', mood:'평온해 보여요', imgKey:'normal' };
+}
+
+function updateRoomCat() {
+  const mood = getCatMood();
+  document.getElementById('room-cat-mood').textContent = mood.mood;
+  const imgEl = document.getElementById('room-cat-img');
+  const emojiEl = document.getElementById('room-cat-emoji');
+  if(imgEl && G.breed) {
+    let src;
+    if(G.chapter >= 3) {
+      // 성묘기 이상: 무드 반영 이미지 (품종별, 없으면 korean fallback)
+      const breedMoods = MOOD_IMGS[G.breed] || {};
+      const baseMoods  = MOOD_IMGS.korean;
+      src = breedMoods[mood.imgKey] || baseMoods[mood.imgKey] || baseMoods.normal;
+    } else {
+      // 아기/청소년: 성장 단계 포트레이트
+      const portraits = CAT_PORTRAITS[G.breed] || CAT_PORTRAITS.korean;
+      src = portraits[G.chapter] || portraits[1];
+    }
+    imgEl.src = src;
+    imgEl.style.display = '';
+    emojiEl.style.display = 'none';
+    const bg = document.getElementById('cat-stage-bg');
+    if(bg) bg.style.backgroundImage = `url('images/bg_room.jpeg')`;
+  } else {
+    emojiEl.textContent = mood.emoji;
+    emojiEl.style.display = '';
+    if(imgEl) imgEl.style.display = 'none';
+  }
+}
+
+function showRoom() {
+  const ch = CHAPTER_NAMES[G.chapter-1];
+  document.getElementById('room-day-label').textContent = `Day ${G.day} / ${CHAPTER_MAX_DAYS[G.chapter]||14}`;
+  document.getElementById('room-chapter-label').textContent = `Chapter ${G.chapter} · ${ch}`;
+
+  const stressVal = G.stats.stress;
+  const stressEl = document.getElementById('room-stress-label');
+  stressEl.textContent = stressVal > 20 ? `스트레스 ${stressVal}` : '';
+
+  updateStatBars();
+  updateCareButtons();
+
+  updateRoomCat();
+
+  goTo('room');
+}
+
+function updateStatBars() {
+  const stats = [
+    ['hunger','bar-hunger','val-hunger'],
+    ['hydration','bar-hydration','val-hydration'],
+    ['litter','bar-litter','val-litter'],
+    ['play','bar-play','val-play'],
+    ['groom','bar-groom','val-groom'],
+  ];
+  stats.forEach(([key,barId,valId])=>{
+    const val = Math.max(0,Math.min(100,G.stats[key]));
+    const bar = document.getElementById(barId);
+    bar.style.width = val+'%';
+    bar.className = 'stat-bar stat-'+key.replace('hydration','hydration');
+    const extra = getStatColor(val,false);
+    if(extra) bar.classList.add(extra);
+    document.getElementById(valId).textContent = val;
+  });
+}
+
+function updateCareButtons() {
+  const today = G.careToday;
+  const shop = G.shop;
+
+  // 경고 표시 (수치 낮을 때)
+  if(G.stats.hunger<40 && !today.feed && !shop.autoFeeder)
+    document.getElementById('care-feed').classList.add('alert');
+  else document.getElementById('care-feed').classList.remove('alert');
+
+  if(G.stats.litter<40 && !today.litter && !shop.autoLitter)
+    document.getElementById('care-litter').classList.add('alert');
+  else document.getElementById('care-litter').classList.remove('alert');
+
+  // 발톱: 마지막으로 자른 지 기간 체크 (챕터1: 7일, 그외: 14일)
+  const nailInterval = G.chapter===1 ? 7 : 14;
+  const nailDue = (G.absoluteDay - G.lastNailDay) >= nailInterval;
+  if(nailDue)
+    document.getElementById('care-nail').classList.add('alert');
+  else document.getElementById('care-nail').classList.remove('alert');
+
+  // 양치: 3일마다
+  const teethDue = (G.absoluteDay - G.lastTeethDay) >= 3;
+  if(teethDue)
+    document.getElementById('care-teeth').classList.add('alert');
+  else document.getElementById('care-teeth').classList.remove('alert');
+
+  // 도구 없으면 반투명 (비활성 아님 — 미니게임은 항상 열림)
+  document.getElementById('care-nail').style.opacity = shop.nailClipper ? '1' : '0.6';
+  document.getElementById('care-teeth').style.opacity = shop.toothBrush ? '1' : '0.6';
+  document.getElementById('care-groom').style.opacity = shop.groomingKit ? '1' : '0.6';
+}
+
+// ── CARE ACTION SHEETS ──
+const CARE_INFO = {
+  feed: {
+    title:'🍚 밥 주기',
+    sub:'성장기에 맞는 양을 정량으로 주세요',
+    info(){
+      const portions = {1:'키튼용 사료 · 하루 3~4회 소량씩',2:'성장기용 · 하루 2~3회',3:'성묘용 · 하루 2회 정량',4:'노령용 · 하루 2회 소화 고려'};
+      return `<b>현재 단계:</b> ${portions[G.chapter]}<br><b>월 예상 비용:</b> 건식 기준 3~8만원<br>자동급식기 사용 시 자동으로 급여됩니다.`;
+    },
+    action:'밥 주기 완료',
+    do(){ G.careToday.feed=true; G.stats.hunger=Math.min(100,G.stats.hunger+70); }
+  },
+  water: {
+    title:'💧 물 주기',
+    sub:'신선한 물을 충분히 제공해주세요',
+    info(){ return `<b>중요:</b> 건식사료 급여 시 충분한 수분 섭취가 필수입니다<br>물 섭취량이 줄면 <b>요로 질환(FLUTD)</b> 위험 증가<br>자동급수기(정수기) 사용 시 음수량이 자연스럽게 늘어납니다`; },
+    action:'물 주기 완료',
+    do(){ G.careToday.water=true; G.stats.hydration=Math.min(100,G.stats.hydration+75); }
+  },
+  litter: {
+    title:'🚽 화장실 청소',
+    sub:'매일 최소 1회 스쿠핑이 필요합니다',
+    info(){ return `<b>모래 종류별 월 비용:</b><br>일반 클럼핑 1~3만원 / 두부모래 3~6만원 / 크리스탈 2~4만원<br><b>방치 시:</b> 고양이 스트레스 증가 → 화장실 외 배변 위험<br>자동화장실 사용 시 자동으로 관리됩니다`; },
+    action:'화장실 청소 완료',
+    do(){ G.careToday.litter=true; G.stats.litter=Math.min(100,G.stats.litter+80); }
+  },
+  play: {
+    title:'🎾 놀아주기',
+    sub:'사냥 본능을 충족시켜 주세요',
+    info(){
+      const needs = {korean:'중간',russian:'중간',scottish:'중간 (관절 주의)',persian:'낮음',abyssinian:'높음',maincoon:'높음'};
+      return `<b>${BREEDS.find(b=>b.id===G.breed)?.name} 활동 요구:</b> ${needs[G.breed]||'중간'}<br><b>권장:</b> 하루 2회, 1회 10~15분<br>낚싯대 장난감이 가장 효과적입니다`;
+    },
+    action:'놀아주기 완료',
+    do(){ G.careToday.play=true; G.stats.play=Math.min(100,G.stats.play+65); }
+  },
+  groom: {
+    title:'🪮 빗질',
+    sub:'털 상태와 헤어볼을 관리합니다',
+    info(){
+      const freq = ['persian','maincoon'].includes(G.breed)?'매일':'3일에 1회';
+      return `<b>${BREEDS.find(b=>b.id===G.breed)?.name} 빗질 주기:</b> ${freq}<br>꾸준히 하면 할수록 빠르게 끝나고 고양이도 익숙해집니다<br><b>방치 시:</b> 헤어볼 빈도 증가, 털 엉킴`;
+    },
+    action:'빗질 완료',
+    do(){ G.careToday.groom=true; G.stats.groom=Math.min(100,G.stats.groom+40); }
+  },
+  nail: {
+    title:'✂️ 발톱 확인 및 관리',
+    sub:'발톱 상태를 확인하고 필요 시 잘라주세요',
+    info(){
+      const interval = G.chapter===1?'주 1회 (자묘)':'앞발 2주 / 뒷발 4주';
+      const daysSince = G.absoluteDay - G.lastNailDay;
+      const nailInterval = G.chapter===1?7:14;
+      const status = daysSince>=nailInterval?'<b style="color:#c85858">관리 필요</b>':'<b style="color:#7cb8a0">양호</b>';
+      return `<b>권장 주기:</b> ${interval}<br><b>현재 상태:</b> 마지막 관리 ${daysSince<99?daysSince+'일 전':'없음'} · ${status}<br>혈관(분홍 부분)에서 3mm 앞만 잘라야 합니다<br>${!G.shop.nailClipper?'⚠️ <b>발톱깎이가 없습니다.</b> 샵에서 구매하세요':''}`;
+    },
+    action:'발톱 관리 완료',
+    do(){
+      if(!G.shop.nailClipper) return;
+      G.careToday.nail=true;
+      G.stats.nail=Math.min(100,G.stats.nail+50);
+      G.lastNailDay=G.absoluteDay;
+    }
+  },
+  teeth: {
+    title:'🪥 양치질',
+    sub:'치석 예방을 위해 정기적으로 닦아주세요',
+    info(){
+      const daysSince = G.absoluteDay - G.lastTeethDay;
+      const status = daysSince>=3?'<b style="color:#c88840">관리 필요</b>':'<b style="color:#7cb8a0">양호</b>';
+      return `<b>권장 주기:</b> 매일 ~ 주 2~3회<br><b>마지막 양치:</b> ${daysSince<99?daysSince+'일 전':'없음'} · ${status}<br>사람용 치약은 절대 사용 금지 (자일리톨 독성)<br>${!G.shop.toothBrush?'⚠️ <b>칫솔·치약 세트가 없습니다.</b> 샵에서 구매하세요':''}`;
+    },
+    action:'양치질 완료',
+    do(){
+      if(!G.shop.toothBrush) return;
+      G.careToday.teeth=true;
+      G.stats.dental=Math.min(100,G.stats.dental+30);
+      G.lastTeethDay=G.absoluteDay;
+    }
+  },
+  treat: {
+    title:'🍬 간식 주기',
+    sub:'적당한 간식은 유대감을 높여줘요',
+    info(){
+      return `오늘 간식: <b>${G.careToday.treatCount}회</b><br>간식은 하루 칼로리의 10% 이내가 권장입니다<br>자주 주면 <b>비만도</b>가 올라갈 수 있어요<br>이벤트에서 고양이를 달랠 때도 사용됩니다`;
+    },
+    action:'😸 간식 주기',
+    do(){
+      G.careToday.treatCount++;
+      G.stats.obesity=Math.min(100,G.stats.obesity+(G.careToday.treatCount>2?5:2));
+    }
+  },
+};
+
+// ═══════════════════════════════
+// LITTER MINI-GAME
+// ═══════════════════════════════
+function getLitterSize() {
+  if(G.shop.autoLitter) return null; // 자동 화장실 = 미니게임 없음
+  if(G.shop.litterLarge) return 'large';
+  if(G.shop.litterMedium) return 'medium';
+  return 'small';
+}
+
+function openLitterMiniGame() {
+  const sizeMap = {
+    small:  { cols:6,  rows:6,  name:'소형', stressEffect:+5 },
+    medium: { cols:9,  rows:8,  name:'중형', stressEffect:0 },
+    large:  { cols:12, rows:9,  name:'대형', stressEffect:-3 },
+  };
+  const size = getLitterSize();
+  const cfg = sizeMap[size];
+  const totalCells = cfg.cols * cfg.rows;
+
+  let cells, totalGroups, removedGroups;
+  const sess = G.litterSession;
+
+  if (sess.dayGenerated === G.absoluteDay && sess.cells && sess.cols === cfg.cols) {
+    // ── 당일 재진입: 저장된 상태 복원 ──
+    cells = sess.cells.map(c => Object.assign({disturbed: c.scrubLevel > 0 && !c.removed}, c));
+    totalGroups = sess.totalGroups;
+    removedGroups = sess.removedGroups;
+  } else {
+    // ── 새 날 또는 첫 진입: 클럼프 새로 생성 ──
+    const isFirstDay = G.absoluteDay === 1;
+    const litterStat = G.stats.litter;
+
+    // 첫날은 빈 화장실, 이후는 수치 기반
+    const rawClumps = isFirstDay ? 0 : Math.max(1, Math.round((100 - litterStat) / 15) + 1);
+    const clumpCount = Math.min(rawClumps, Math.floor(totalCells * 0.15));
+
+    cells = Array.from({length:totalCells}, ()=>({
+      type:null, isAnchor:false, anchorIdx:-1, groupId:-1,
+      scrubLevel:0, removed:false, disturbed:false
+    }));
+
+    const urineCount = Math.ceil(clumpCount * 0.6);
+    const poopCount  = clumpCount - urineCount;
+    const usedCells  = new Set();
+    let groupCounter = 0;
+
+    const rowOrder = [...Array(cfg.rows-1).keys()].sort(()=>Math.random()-0.5);
+    let urinePlaced = 0;
+    for(const r of rowOrder){
+      if(urinePlaced >= urineCount) break;
+      const colOrder = [...Array(cfg.cols-1).keys()].sort(()=>Math.random()-0.5);
+      for(const c of colOrder){
+        if(urinePlaced >= urineCount) break;
+        const idxTL = r*cfg.cols + c;
+        const idxTR = r*cfg.cols + c+1;
+        const idxBL = (r+1)*cfg.cols + c;
+        const idxBR = (r+1)*cfg.cols + c+1;
+        const group = [idxTL,idxTR,idxBL,idxBR];
+        if(group.some(i=>usedCells.has(i))) continue;
+        cells[idxTL].type='urine'; cells[idxTL].isAnchor=true; cells[idxTL].groupId=groupCounter;
+        [idxTR,idxBL,idxBR].forEach(i=>{
+          cells[i].type='urine'; cells[i].anchorIdx=idxTL; cells[i].groupId=groupCounter;
+        });
+        group.forEach(i=>usedCells.add(i));
+        groupCounter++; urinePlaced++;
+      }
+    }
+
+    const allIdx = [...Array(totalCells).keys()].sort(()=>Math.random()-0.5);
+    let poopPlaced = 0;
+    for(const idx of allIdx){
+      if(poopPlaced >= poopCount) break;
+      if(usedCells.has(idx)) continue;
+      cells[idx].type='poop'; cells[idx].isAnchor=true; cells[idx].groupId=groupCounter;
+      usedCells.add(idx); groupCounter++; poopPlaced++;
+    }
+
+    // 방치 심하면(litter<40) 일부 앵커 셀 초기 부분 노출
+    if(!isFirstDay && litterStat < 40){
+      cells.forEach(c=>{ if(c.isAnchor && c.type) c.scrubLevel = 50; });
+    }
+
+    totalGroups = groupCounter;
+    removedGroups = 0;
+
+    // G에 저장 (cells 배열 직접 참조 — 이후 수정 시 자동 반영)
+    sess.cells = cells;
+    sess.totalGroups = totalGroups;
+    sess.removedGroups = 0;
+    sess.dayGenerated = G.absoluteDay;
+    sess.cols = cfg.cols;
+  }
+
+  let isDragging = false;
+  let prevCellIdx = -1;
+
+  // ── HTML 생성 ──
+  const cellsHtml = cells.map((c,i)=>{
+    let clumpHtml = '';
+    if(c.isAnchor && c.type){
+      const cls = c.type === 'urine' ? 'litter-clump-urine' : 'litter-clump-poop';
+      let visCls = '';
+      if(c.removed) visCls = ' removed';
+      else if(c.scrubLevel >= 100) visCls = ' visible';
+      clumpHtml = `<div class="${cls}${visCls}" id="lclump-${i}"></div>`;
+    }
+    const distCls = c.disturbed ? ' disturbed-1' : '';
+    return `<div class="litter-cell${distCls}" id="lc-${i}" data-idx="${i}">${clumpHtml}</div>`;
+  }).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'litter-game-overlay';
+  overlay.id = 'litter-overlay';
+
+  overlay.innerHTML = `
+    <div class="litter-game-box slide-up">
+      <div class="litter-game-header">
+        <div class="litter-size-badge">${cfg.name}</div>
+      </div>
+      <div class="litter-grid-center">
+        <div class="litter-grid-wrap">
+          <div class="litter-grid" id="litter-grid" style="grid-template-columns:repeat(${cfg.cols},24px)">${cellsHtml}</div>
+        </div>
+      </div>
+      <div class="litter-tool-area">
+        <div class="litter-tool-btn" id="litter-tool-btn" title="화장실 삽">🧹</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+
+  const grid = document.getElementById('litter-grid');
+  const toolBtn = document.getElementById('litter-tool-btn');
+
+  // 도구 ON = 드래그 가능 / 도구 OFF = 창 닫기
+  let toolActive = false;
+  toolBtn.addEventListener('click', ()=>{
+    if(!toolActive){
+      toolActive = true;
+      toolBtn.classList.add('active');
+    } else {
+      // 두 번째 클릭 = 청소 완료, 닫기
+      finishLitterGame(totalGroups, size);
+    }
+  });
+
+  function getCellIdx(x,y){
+    const el = document.elementFromPoint(x,y);
+    if(!el) return -1;
+    const cell = el.closest ? el.closest('.litter-cell') : null;
+    if(!cell) return -1;
+    return parseInt(cell.dataset.idx);
+  }
+
+  function getAnchorIdx(idx){
+    if(idx<0||idx>=totalCells) return -1;
+    const c = cells[idx];
+    if(!c.type) return -1;
+    return c.isAnchor ? idx : c.anchorIdx;
+  }
+
+  function scrubCell(idx){
+    if(idx<0||idx>=totalCells) return;
+    if(idx===prevCellIdx) return;
+    prevCellIdx = idx;
+
+    const aIdx = getAnchorIdx(idx);
+
+    // 셀 색상: 한 번만 변화 (disturbed-1 이상으론 안 감)
+    if(!cells[idx].disturbed){
+      cells[idx].disturbed = true;
+      const cellEl = document.getElementById(`lc-${idx}`);
+      if(cellEl) cellEl.classList.add('disturbed-1');
+    }
+    cells[idx].scrubLevel = Math.min(100, cells[idx].scrubLevel + 40);
+
+    // 앵커 clump 공개
+    if(aIdx>=0 && !cells[aIdx].removed){
+      cells[aIdx].scrubLevel = Math.min(100, cells[aIdx].scrubLevel + 40);
+      const aLv = cells[aIdx].scrubLevel;
+      const clumpEl = document.getElementById(`lclump-${aIdx}`);
+      if(clumpEl){
+        if(aLv>=100){
+          clumpEl.classList.add('visible');
+          clumpEl.onclick = ()=>removeClump(aIdx);
+        } else {
+          clumpEl.style.opacity = aLv/100 * 0.8;
+          clumpEl.style.transform = `scale(${0.15+aLv/100*0.85})`;
+          clumpEl.style.transition = 'none';
+        }
+      }
+    }
+  }
+
+  function removeClump(aIdx){
+    if(!cells[aIdx].isAnchor || cells[aIdx].removed) return;
+    const gid = cells[aIdx].groupId;
+    cells.forEach((c,i)=>{
+      if(c.groupId===gid){
+        c.removed=true;
+        const cellEl=document.getElementById(`lc-${i}`);
+        if(cellEl) cellEl.classList.add('clean');
+      }
+    });
+    removedGroups++;
+    G.litterSession.removedGroups = removedGroups;
+    const clumpEl=document.getElementById(`lclump-${aIdx}`);
+    if(clumpEl){ clumpEl.classList.remove('visible'); clumpEl.classList.add('removed'); clumpEl.onclick=null; }
+  }
+
+  function onStart(e){
+    if(!toolActive) return;
+    isDragging=true; prevCellIdx=-1;
+    const pt=e.touches?e.touches[0]:e;
+    scrubCell(getCellIdx(pt.clientX,pt.clientY));
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!isDragging||!toolActive) return;
+    const pt=e.touches?e.touches[0]:e;
+    scrubCell(getCellIdx(pt.clientX,pt.clientY));
+    e.preventDefault();
+  }
+  function onEnd(){ isDragging=false; prevCellIdx=-1; }
+
+  grid.addEventListener('pointerdown',onStart,{passive:false});
+  grid.addEventListener('pointermove',onMove,{passive:false});
+  window.addEventListener('pointerup',onEnd);
+
+  overlay._cleanup=()=>window.removeEventListener('pointerup',onEnd);
+  window._litterGame={ cells, getRemovedCount:()=>removedGroups };
+}
+
+function finishLitterGame(totalClumps, size) {
+  const game = window._litterGame;
+  const removed = game ? game.getRemovedCount() : 0;
+  const ratio = removed / Math.max(1,totalClumps);
+
+  // 수치 회복: 제거 비율에 따라
+  G.stats.litter = Math.min(100, G.stats.litter + Math.round(ratio * 75) + 5);
+  G.careToday.litter = true;
+
+  // 화장실 크기 효과
+  if(size==='small') G.stats.stress = Math.min(100, G.stats.stress + 5);
+  if(size==='large') G.stats.stress = Math.max(0, G.stats.stress - 3);
+
+  // 오버레이 제거
+  const overlay = document.getElementById('litter-overlay');
+  if(overlay) { if(overlay._cleanup) overlay._cleanup(); overlay.remove(); }
+  window._litterGame = null;
+
+  updateStatBars();
+  updateCareButtons();
+  updateRoomCat();
+
+}
+
+function showToast(msg, type) {
+  const t = document.createElement('div');
+  const color = type==='ok'?'#7cb8a0':type==='warn'?'#c8883c':'#c85858';
+  t.style.cssText = `position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#13132a;border:1px solid ${color}55;border-radius:10px;padding:10px 18px;font-size:12px;color:${color};z-index:500;white-space:nowrap;animation:slideUp 0.2s ease;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 2800);
+}
+
+function openCare(type) {
+  // 화장실: 자동화장실이 없으면 미니게임으로
+  if(type==='litter') {
+    if(G.shop.autoLitter) {
+      G.careToday.litter=true;
+      G.stats.litter=Math.min(100,G.stats.litter+80);
+      updateStatBars(); updateCareButtons();
+      showToast('자동 화장실이 청소했어요 ✓', 'ok');
+      return;
+    }
+    openLitterMiniGame();
+    return;
+  }
+
+  // 빗질: 항상 미니게임
+  if(type==='groom') { openGroomMiniGame(); return; }
+
+  // 발톱: 항상 미니게임
+  if(type==='nail') { openNailMiniGame(); return; }
+
+  // 양치: 항상 미니게임
+  if(type==='teeth') { openTeethMiniGame(); return; }
+
+  // 놀이: 항상 미니게임
+  if(type==='play') { openPlayMiniGame(); return; }
+
+  const info = CARE_INFO[type];
+  if(!info) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'care-overlay';
+  overlay.innerHTML = `
+    <div class="care-sheet slide-up">
+      <div class="care-sheet-title">${info.title}</div>
+      <div class="care-sheet-sub">${info.sub}</div>
+      <div class="care-info-box">${info.info()}</div>
+      <button class="care-do-btn" id="care-do-btn">${info.action}</button>
+      <button class="care-cancel-btn" onclick="this.closest('.care-overlay').remove()">닫기</button>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+
+  document.getElementById('care-do-btn').onclick = ()=>{
+    info.do();
+    overlay.remove();
+    updateStatBars();
+    updateCareButtons();
+    if(type==='treat') showTreatReaction();
+    updateRoomCat();
+  };
+}
+
+function showTreatReaction() {
+  const reactions = ['😻','🥰','😸','🐱','😺'];
+  const r = reactions[Math.floor(Math.random()*reactions.length)];
+  const pop = document.createElement('div');
+  pop.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:80px;z-index:500;animation:slideUp 0.3s ease;pointer-events:none;';
+  pop.textContent = r;
+  document.body.appendChild(pop);
+  setTimeout(()=>pop.remove(), 1200);
+}
+
+// ── END DAY ──
+function endDay() {
+  G.absoluteDay++;
+  G.foodTurns++;
+  G.litterTurns++;
+  G.lureTurns++;
+  applyDailyDecay();
+
+  const penalties = buildPenaltyList();
+  showDayResult(penalties, ()=>{
+    // 소모품 팝업 체크 후 다음 단계
+    checkConsumables(()=>{
+      G.day++;
+      resetCareToday();
+      if(G.day > (CHAPTER_MAX_DAYS[G.chapter] || 14)) {
+        showChapterSummary();
+      } else {
+        showNextEvent(); // 오늘 이벤트 있으면 표시, 없으면 룸으로
+      }
+    });
+  });
+}
+
+function applyDailyDecay() {
+  const s = G.stats;
+  const shop = G.shop;
+  const care = G.careToday;
+  const isLongHair = ['persian','maincoon'].includes(G.breed);
+
+  // 허기
+  if(!care.feed && !shop.autoFeeder) s.hunger = Math.max(0, s.hunger-30);
+  // 수분
+  if(!care.water && !shop.waterFountain) s.hydration = Math.max(0, s.hydration-25);
+  // 화장실
+  if(!care.litter && !shop.autoLitter) s.litter = Math.max(0, s.litter-25);
+  // 놀이 (자동장난감 흥미 감소 반영)
+  if(!care.play) {
+    let playDecay = 20;
+    if(shop.autoToy) {
+      G.autoToyDays++;
+      const interest = Math.max(0, 10 - Math.floor(G.autoToyDays/3));
+      playDecay = Math.max(5, 20 - interest*1.5);
+    }
+    s.play = Math.max(0, s.play - playDecay);
+  }
+  // 빗질
+  if(!care.groom) s.groom = Math.max(0, s.groom - (isLongHair?15:8));
+  // 발톱 (자연 성장)
+  s.nail = Math.max(0, s.nail-4);
+  // 치아
+  if(!care.teeth) s.dental = Math.max(0, s.dental-3);
+
+  // 스트레스 계산
+  let stress = 0;
+  if(s.hunger<40) stress += 20;
+  if(s.hunger<20) stress += 15;
+  if(s.hydration<40) stress += 15;
+  if(s.litter<30) stress += 25;
+  if(s.litter<15) stress += 15;
+  if(s.play<30) stress += 10;
+  if(s.groom<30) stress += 10;
+  if(shop.catTower) stress = Math.max(0, stress-10);
+  s.stress = Math.min(100, Math.max(0, s.stress*0.7 + stress*0.3));
+
+  // 간식 비만 누적은 이미 openCare에서 처리
+}
+
+function buildPenaltyList() {
+  const s = G.stats;
+  const care = G.careToday;
+  const shop = G.shop;
+  const items = [];
+
+  if(care.feed || shop.autoFeeder)
+    items.push({cls:'ok', text:'밥 ✓ — 허기 해소'});
+  else if(s.hunger<30)
+    items.push({cls:'bad', text:`밥 ✗ — 많이 배고파해요 (허기 ${s.hunger})`});
+  else
+    items.push({cls:'warn', text:`밥 ✗ — 배가 고파지고 있어요`});
+
+  if(care.water || shop.waterFountain)
+    items.push({cls:'ok', text:'물 ✓ — 수분 충족'});
+  else if(s.hydration<40)
+    items.push({cls:'bad', text:`물 ✗ — 탈수 위험 (수분 ${s.hydration})`});
+
+  if(care.litter || shop.autoLitter)
+    items.push({cls:'ok', text:'화장실 ✓ — 청결 유지'});
+  else if(s.litter<30)
+    items.push({cls:'bad', text:`화장실 ✗ — 너무 더러워요 (${s.litter})`});
+  else
+    items.push({cls:'warn', text:'화장실 ✗ — 오염 누적 중'});
+
+  if(!care.play && s.play<40)
+    items.push({cls:'warn', text:`놀이 부족 — 스트레스 쌓이는 중`});
+
+  if(s.stress>50)
+    items.push({cls:'bad', text:`스트레스 높음 (${Math.round(s.stress)}) — 이벤트 결과에 영향`});
+
+  return items;
+}
+
+function showDayResult(penalties, onNext) {
+  const overlay = document.createElement('div');
+  overlay.className = 'day-result-overlay';
+  const penaltyHtml = penalties.map(p=>
+    `<div class="day-penalty-item ${p.cls}">${p.text}</div>`
+  ).join('');
+  overlay.innerHTML = `
+    <div class="day-result-box slide-up">
+      <div class="day-result-title">Day ${G.day} 마무리</div>
+      <div class="day-penalty-list">${penaltyHtml||'<div class="day-penalty-item ok">오늘 케어를 잘 해줬어요 🌟</div>'}</div>
+      <button class="btn-day-next" id="day-next-btn">다음으로</button>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+  document.getElementById('day-next-btn').onclick = ()=>{ overlay.remove(); onNext(); };
+}
+
+// ── SHOP ──
+function openShop() {
+  const overlay = document.createElement('div');
+  overlay.className = 'shop-overlay';
+
+  const categories = [...new Set(SHOP_ITEMS.map(i=>i.category))];
+  let html = `<div class="shop-sheet slide-up">
+    <div class="shop-title">🛒 펫 샵</div>
+    <div class="shop-sub">구매한 용품은 고양이 케어를 도와줍니다</div>`;
+
+  categories.forEach(cat=>{
+    html += `<div class="shop-category">${cat}</div>`;
+    SHOP_ITEMS.filter(i=>i.category===cat).forEach(item=>{
+      const owned = G.shop[item.id];
+      html += `
+        <div class="shop-item">
+          <span class="shop-item-icon">${item.icon}</span>
+          <div class="shop-item-info">
+            <div class="shop-item-name">${item.name}</div>
+            <div class="shop-item-desc">${item.desc}</div>
+            <div class="shop-item-price">${item.price}</div>
+          </div>
+          <button class="shop-buy-btn ${owned?'owned':''}" onclick="buyItem('${item.id}',this)">${owned?'보유중':'구매'}</button>
+        </div>`;
+    });
+  });
+
+  html += `<button class="shop-close" onclick="this.closest('.shop-overlay').remove()">닫기</button></div>`;
+  overlay.innerHTML = html;
+  document.getElementById('app').appendChild(overlay);
+}
+
+function buyItem(id, btn) {
+  if(G.shop[id]) return;
+  if(id==='autoToy') G.shop[id]=10;
+  else G.shop[id]=true;
+  btn.textContent='보유중';
+  btn.classList.add('owned');
+  updateCareButtons();
+  // 가계부 기록
+  const item = SHOP_ITEMS.find(i=>i.id===id);
+  if(item) {
+    const cost = parseInt(item.price.replace(/[^0-9]/g,'')) || 0;
+    G.ledger.push({ label: item.name, cost, day: G.absoluteDay });
+  }
+}
+
+// ── DISCLAIMER ──
+function checkDiscAgree() {
+  const checked = document.getElementById('disc-check').checked;
+  const btn = document.getElementById('disc-start-btn');
+  btn.style.opacity = checked?'1':'0.3';
+  btn.style.pointerEvents = checked?'auto':'none';
+}
+
+// ═══════════════════════════════
+// EVENT
+// ═══════════════════════════════
+function showNextEvent() {
+  if(G.eventIndex >= G.eventQueue.length) {
+    // 이벤트 모두 소진 — 남은 날이 있으면 룸으로, 없으면 챕터 요약
+    const maxDay = CHAPTER_MAX_DAYS[G.chapter] || 14;
+    if(G.day <= maxDay) { showRoom(); } else { showChapterSummary(); }
+    return;
+  }
+  // 다음 이벤트가 오늘 날짜 이후 예정이면 룸으로 돌아감
+  const scheduledDay = G.eventDays[G.eventIndex];
+  if(scheduledDay > G.day) {
+    showRoom();
+    return;
+  }
+  const eventId = G.eventQueue[G.eventIndex];
+  const event = EVENTS.find(e=>e.id===eventId);
+  if(!event) { G.eventIndex++; showNextEvent(); return; }
+
+  // Header
+  document.getElementById('hdr-name').textContent = G.name;
+  document.getElementById('hdr-chapter').textContent = CHAPTERS[G.chapter-1].name;
+  document.getElementById('hdr-score').textContent = G.score + '점';
+
+  // Scene
+  const sceneImg = document.getElementById('scene-img');
+  const sceneOverlay = document.getElementById('scene-overlay');
+  const evImgSrc = EVENT_IMAGES[event.id];
+  if(evImgSrc) {
+    sceneImg.src = evImgSrc;
+    sceneImg.style.display = '';
+    sceneOverlay.style.display = '';
+    document.getElementById('scene-emoji').style.display = 'none';
+    document.getElementById('scene-desc').textContent = '';
+  } else {
+    sceneImg.style.display = 'none';
+    sceneOverlay.style.display = 'none';
+    document.getElementById('scene-emoji').style.display = '';
+    document.getElementById('scene-emoji').textContent = event.emoji;
+    document.getElementById('scene-desc').textContent = event.imgDesc;
+  }
+
+  // Tag
+  const tagEl = document.getElementById('event-tag');
+  tagEl.textContent = event.tag;
+  tagEl.className = 'event-tag';
+  if(event.type==='mandatory') tagEl.classList.add('tag-mandatory');
+  else if(event.type==='personality') tagEl.classList.add('tag-personality');
+  else if(event.type==='breed') tagEl.classList.add('tag-breed');
+  else tagEl.classList.add('tag-behavior');
+
+  // Situation
+  document.getElementById('situation-text').textContent = event.situation;
+
+  // Choices — shuffle so correct answer isn't always first
+  const shuffled = [...event.choices].sort(()=>Math.random()-0.5);
+  G.currentChoices = shuffled;
+  const wrap = document.getElementById('choices-wrap');
+  wrap.innerHTML = shuffled.map((c,i)=>`
+    <button class="choice-btn" onclick="chooseOption(${i})">${c.text}</button>
+  `).join('');
+
+  goTo('event');
+}
+
+function chooseOption(idx) {
+  const choice = G.currentChoices[idx];
+
+  G.score += choice.score;
+  G.chapterScores[G.chapter-1] += choice.score;
+  G.totalMax += 20;
+
+  // Update header score
+  document.getElementById('hdr-score').textContent = G.score + '점';
+
+  showResult(choice, ()=>{
+    G.eventIndex++;
+    showNextEvent();
+  });
+}
+
+// ═══════════════════════════════
+// RESULT
+// ═══════════════════════════════
+function showResult(choice, onNext) {
+  const overlay = document.createElement('div');
+  overlay.className = 'result-overlay';
+
+  const badgeMap = {
+    correct:   { label:'✓ 정석 대처', cls:'badge-correct' },
+    plausible: { label:'△ 아쉬운 선택', cls:'badge-plausible' },
+    caring_wrong: { label:'♡ 마음은 좋지만...', cls:'badge-caring' },
+    selfish:   { label:'✕ 고양이가 힘들어요', cls:'badge-selfish' },
+  };
+  const b = badgeMap[choice.type] || badgeMap.selfish;
+
+  const scoreMap = { 20:'score-positive', 10:'score-partial', 5:'score-low', 0:'score-zero' };
+  const scoreCls = scoreMap[choice.score] || 'score-zero';
+  const scoreLabel = choice.score===20?'+20점 만점!':choice.score===10?'+10점':choice.score===5?'+5점':'0점';
+
+  overlay.innerHTML = `
+    <div class="result-sheet slide-up">
+      <span class="result-badge ${b.cls}">${b.label}</span>
+      <div class="result-score-line ${scoreCls}">${scoreLabel}</div>
+      <div class="result-desc">${choice.result}</div>
+      <div class="result-expert">💡 ${choice.expert}</div>
+      <button class="btn-next" id="result-next-btn">다음으로</button>
+    </div>
+  `;
+
+  document.getElementById('app').appendChild(overlay);
+  document.getElementById('result-next-btn').onclick = ()=>{
+    overlay.remove();
+    onNext();
+  };
+}
+
+// ═══════════════════════════════
+// CHAPTER SUMMARY
+// ═══════════════════════════════
+function showChapterSummary() {
+  const ch = CHAPTERS[G.chapter-1];
+  const chScore = G.chapterScores[G.chapter-1];
+  const chMax = G.eventQueue.length * 20;
+  const pct = chMax > 0 ? Math.round(chScore/chMax*100) : 0;
+
+  const comments = [
+    ['완벽해요! 이 챕터 만점입니다 🌟', 80],
+    ['잘 하셨어요. 몇 가지만 더 알면 완벽해요 👍', 60],
+    ['보통이에요. 고양이가 조금 힘들었을 것 같아요 🙁', 40],
+    ['많이 힘들었겠어요. 다음엔 더 잘 하실 거예요 😔', 0],
+  ];
+  const comment = comments.find(c=>pct>=c[1])[0];
+
+  const isLast = G.chapter === 4;
+  const isMidpoint = G.chapter === 2; // 챕터2 완료 = 1부 끝
+
+  document.getElementById('sum-label').textContent = `CHAPTER ${G.chapter} — ${ch.name} 완료`;
+  document.getElementById('sum-score').textContent = G.score;
+  document.getElementById('sum-max').textContent = `/ ${G.totalMax}점 만점`;
+  document.getElementById('sum-bar').style.width = (G.totalMax>0?Math.min(100,Math.round(G.score/G.totalMax*100)):0)+'%';
+  document.getElementById('sum-comment').textContent = comment;
+
+  if(isMidpoint) {
+    document.getElementById('sum-btn').textContent = '1부 결과 보기';
+    document.getElementById('sum-btn').onclick = showMidpointReview;
+  } else if(isLast) {
+    document.getElementById('sum-btn').textContent = '결과 보기';
+    document.getElementById('sum-btn').onclick = showEnding;
+  } else {
+    document.getElementById('sum-btn').textContent = '다음 챕터로';
+    document.getElementById('sum-btn').onclick = ()=>{ G.day=1; resetCareToday(); showChapterIntro(G.chapter+1); };
+  }
+
+  goTo('chapter-summary');
+}
+
+function showMidpointReview() {
+  const ch12Max = (G.chapterScores[0] + G.chapterScores[1]) > 0
+    ? G.totalMax : 0;
+  const totalScore = G.score;
+  const totalMax = G.totalMax;
+  const pct = totalMax > 0 ? Math.round(totalScore / totalMax * 100) : 0;
+
+  const comments = [
+    ['완벽한 집사예요! 1부 만점입니다 🌟', 80],
+    ['꽤 잘 하셨어요. 몇 가지 아쉬운 선택이 있었어요 👍', 60],
+    ['보통 수준이에요. 고양이가 조금 힘들었을 것 같아요 🙁', 40],
+    ['많이 힘들었겠어요. 현실 고양이 육아는 더 어렵답니다 😔', 0],
+  ];
+  const comment = comments.find(c=>pct>=c[1])[0];
+
+  document.getElementById('mid-score').textContent = totalScore;
+  document.getElementById('mid-max').textContent = `/ ${totalMax}점 만점`;
+  document.getElementById('mid-bar').style.width = Math.min(100, pct)+'%';
+  document.getElementById('mid-comment').textContent = comment;
+
+  goTo('midpoint');
+}
+
+function continueTo34() {
+  G.day = 1;
+  resetCareToday();
+  showChapterIntro(3);
+}
+
+function nextChapter() {
+  if(G.chapter < 4) showChapterIntro(G.chapter+1);
+  else showEnding();
+}
+
+// ═══════════════════════════════
+// ENDING
+// ═══════════════════════════════
+function showEnding() {
+  const pct = G.totalMax > 0 ? Math.round(G.score/G.totalMax*100) : 0;
+
+  const grades = [
+    { min:85, grade:'완벽한 집사', stars:'⭐⭐⭐⭐⭐', comment:`${G.name}(이)는 세상에서 가장 행복한 고양이였을 거예요.\n당신의 헌신과 지식 덕분에 ${G.name}(이)가 건강하고 오래 살았습니다.\n이런 집사라면 실제로 고양이를 키워도 잘 하실 수 있어요.` },
+    { min:69, grade:'훌륭한 집사', stars:'⭐⭐⭐⭐', comment:`${G.name}(이)를 정말 사랑했군요.\n몇 가지 아쉬운 순간이 있었지만 전반적으로 잘 돌봐줬어요.\n실제로 키운다면 조금 더 공부하면 완벽한 집사가 될 수 있어요.` },
+    { min:50, grade:'보통 집사', stars:'⭐⭐⭐', comment:`${G.name}(이)가 집사를 사랑했지만 힘든 순간도 있었어요.\n고양이를 키우는 건 생각보다 더 많은 준비가 필요합니다.\n입양 전 더 공부해보는 것을 추천해요.` },
+    { min:31, grade:'조금 부족한 집사', stars:'⭐⭐', comment:`${G.name}(이)는 집사를 기다렸을 거예요.\n고양이를 키우는 것은 쉬운 일이 아닙니다.\n충분한 준비 없이는 입양을 서두르지 마세요.` },
+    { min:0, grade:'집사 자격 미달', stars:'⭐', comment:`${G.name}(이)는 더 좋은 집사를 만날 자격이 있었을 거예요.\n고양이는 생명입니다. 준비 없이 입양하면 고양이가 힘들어집니다.\n충분히 공부하고, 준비가 됐을 때 다시 도전해보세요.` },
+  ];
+
+  const g = grades.find(gr=>pct>=gr.min);
+
+  document.getElementById('end-score').textContent = pct;
+  document.getElementById('end-grade').textContent = g.grade;
+  document.getElementById('end-stars').textContent = g.stars;
+  document.getElementById('end-comment').textContent = g.comment;
+
+  goTo('ending');
+}
+
+function restartGame() {
+  G = {
+    breed:null, name:'', score:0, chapter:1,
+    eventQueue:[], eventIndex:0, chapterScores:[0,0,0,0],
+    totalMax:0, currentChoices:[],
+    day:1, absoluteDay:0,
+    stats:{ hunger:100, hydration:100, litter:100, play:100, groom:100, stress:0, obesity:0, dental:100, nail:100 },
+    careToday:{ feed:false, water:false, litter:false, play:false, groom:false, nail:false, teeth:false, treatCount:0 },
+    shop:{ autoFeeder:false, waterFountain:false, autoLitter:false, autoToy:0, catTower:false, scratcher:false, groomingKit:false, nailClipper:false, toothBrush:false, litterMedium:false, litterLarge:false },
+    autoToyDays:0, lastNailDay:-99, lastTeethDay:-99, eventDays:[],
+    ledger:[], foodTurns:0, litterTurns:0, lureTurns:0, initialCostShown:false,
+    litterSession:{ cells:null, totalGroups:0, removedGroups:0, dayGenerated:-1, cols:0 },
+    playSession:{ filled:0, need:0, catchCount:0, lastWasCatch:false, day:-1 },
+    groomSession:{ progress:0, strokes:0, day:-1 },
+    teethSession:{ zones:null, day:-1 },
+  };
+  document.querySelectorAll('.breed-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('breed-confirm').classList.remove('ready');
+  document.getElementById('disc-check').checked = false;
+  checkDiscAgree();
+  goTo('disclaimer');
+}
+
+// ═══════════════════════════════
+// 케어 정보 팝업 (ℹ 버튼)
+// ═══════════════════════════════
+const CARE_INFO_CARDS = {
+  feed:{
+    title:'🍚 밥 주기 — 알아두기',
+    body:`• 성장기(0~1세) 키튼은 하루 3~4회 소량씩 급여<br>
+• 성묘는 하루 2회 정량 급여가 기본<br>
+• 건식사료 급여 시 충분한 음수량 확인 필수<br>
+• 월 사료비: 건식 기준 3~8만원 (크기·품질에 따라 상이)<br>
+• 자동급식기를 사용하면 정량 타이머 급여가 가능해요`
+  },
+  water:{
+    title:'💧 물 주기 — 알아두기',
+    body:`• 건식사료를 먹는 고양이는 <b>수분 섭취가 특히 중요</b>해요<br>
+• 음수량 부족 시 요로 질환(FLUTD·방광염) 위험 증가<br>
+• 고양이는 움직이는 물을 더 좋아하는 경우가 많아요<br>
+• 자동급수기(정수기)는 음수량을 자연스럽게 늘려줍니다<br>
+• 물그릇은 사료 그릇과 떨어진 곳에 두는 것이 좋아요`
+  },
+  litter:{
+    title:'🚽 화장실 — 알아두기',
+    body:`• 화장실은 고양이 수 + 1개 이상이 권장 기준<br>
+• 매일 최소 1회 스쿠핑, 주 1회 전체 모래 교체<br>
+• 크기: 고양이 몸길이의 1.5배 이상이 이상적<br>
+• 방치 시 스트레스 증가 → 화장실 외 배변 문제 발생 가능<br>
+• 모래 종류 민감도는 고양이마다 달라요 (바꿀 때는 서서히)`
+  },
+  play:{
+    title:'🎾 놀이 — 알아두기',
+    body:`• 하루 2회, 1회 10~15분 놀아주는 것이 권장돼요<br>
+• 놀이는 사냥 본능을 충족시켜 스트레스를 해소해요<br>
+• <b>마지막엔 꼭 잡히게</b> 해줘야 고양이가 만족감을 느껴요<br>
+• 레이저 포인터 단독 사용 시 강박 행동 위험 → 반드시 물리적 장난감으로 마무리<br>
+• 미끼 종류에 따라 선호도가 달라요 — 여러 개를 바꿔가며 반응을 살펴보세요`
+  },
+  groom:{
+    title:'🪮 빗질 — 알아두기',
+    body:`• 단모종: 주 1~2회 / 장모종(페르시안·메인쿤): 매일 빗질<br>
+• 꾸준히 해줄수록 헤어볼 빈도가 줄고 털 엉킴을 예방<br>
+• 어릴 때부터 습관을 들이면 성묘가 되어서도 쉬워져요<br>
+• 빗질 시 피부 상태·덩어리·기생충 유무도 함께 확인하세요<br>
+• 빗질 도중 도망가면 무리하지 말고 간식으로 유도해보세요`
+  },
+  nail:{
+    title:'✂️ 발톱 손질 — 알아두기',
+    body:`• 앞발: 2~3주마다 / 뒷발: 3~4주마다 관리<br>
+• 발톱 분홍 부분(혈관)에서 3mm 앞만 잘라야 해요<br>
+• 혈관을 자르면 출혈이 생기고 고양이가 트라우마를 가질 수 있어요<br>
+• 억지로 잡으면 이후 발톱 관리가 더 힘들어져요<br>
+• 스크래처가 있으면 자연 마모로 관리 주기가 늘어나요`
+  },
+  teeth:{
+    title:'🪥 양치질 — 알아두기',
+    body:`• 매일이 이상적, 최소 주 2~3회 권장<br>
+• <b>사람용 치약은 절대 금지</b> (자일리톨·불소 독성)<br>
+• 고양이 전용 치약 + 손가락 칫솔 또는 고양이용 칫솔 사용<br>
+• 열육치(가장 큰 어금니)에 치석이 잘 쌓이므로 집중적으로 닦아주세요<br>
+• 치석 방치 시 치주 질환 → 전신 건강에도 영향을 줄 수 있어요`
+  },
+  treat:{
+    title:'🍬 간식 — 알아두기',
+    body:`• 간식은 하루 칼로리의 10% 이내가 권장 기준<br>
+• 너무 자주 주면 사료를 거부하거나 비만이 될 수 있어요<br>
+• 고양이 전용 간식만 사용하세요 (사람 음식 중독·독성 위험)<br>
+• 훈련·투약·스트레스 완화 시 유용하게 활용할 수 있어요<br>
+• 포도·파·초콜릿·자일리톨은 고양이에게 독성 식품이에요`
+  },
+};
+
+function showCareInfo(type) {
+  const card = CARE_INFO_CARDS[type];
+  if(!card) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'info-overlay';
+  overlay.innerHTML = `
+    <div class="info-card">
+      <div class="info-card-title">${card.title}</div>
+      <div class="info-card-body">${card.body}</div>
+      <button class="info-card-close" onclick="this.closest('.info-overlay').remove()">닫기</button>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+}
+
+// ═══════════════════════════════
+// 가계부
+// ═══════════════════════════════
+function openLedger() {
+  const total = G.ledger.reduce((s,e)=>s+e.cost, 0);
+  const itemsHtml = G.ledger.length === 0
+    ? '<div class="ledger-item"><span class="ledger-item-label">아직 지출 내역이 없어요</span></div>'
+    : G.ledger.map(e=>`
+        <div class="ledger-item">
+          <span class="ledger-item-label">${e.label}</span>
+          <span class="ledger-item-cost">${e.cost.toLocaleString()}원</span>
+        </div>
+      `).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ledger-overlay';
+  overlay.innerHTML = `
+    <div class="ledger-sheet">
+      <div class="ledger-title">📒 가계부</div>
+      <div class="ledger-total">총 지출: ${total.toLocaleString()}원</div>
+      ${itemsHtml}
+      <button class="ledger-close" onclick="this.closest('.ledger-overlay').remove()">닫기</button>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+}
+
+// ═══════════════════════════════
+// 초기 비용 팝업
+// ═══════════════════════════════
+const INITIAL_COST_ITEMS = [
+  { label:'소형 오픈형 화장실', cost:16000 },
+  { label:'스테인리스 밥·물그릇 2구', cost:10000 },
+  { label:'소형 이동장', cost:32000 },
+  { label:'골판지 스크래처', cost:7000 },
+  { label:'낚싯대 기본형', cost:9000 },
+  { label:'깃털 미끼', cost:4000 },
+  { label:'생쥐 인형 미끼', cost:5000 },
+  { label:'방울 미끼', cost:3000 },
+  { label:'응고형 벤토나이트 모래 5kg', cost:9000 },
+  { label:'키튼 건식사료 1.2kg', cost:22000 },
+  { label:'첫 건강검진', cost:30000 },
+  { label:'종합백신 1차', cost:25000 },
+  { label:'내부 구충제', cost:10000 },
+];
+
+function showInitialCostPopup(onConfirm) {
+  // 가계부에 초기 비용 추가
+  INITIAL_COST_ITEMS.forEach(item=>{
+    G.ledger.push({ label:item.label, cost:item.cost, day:0 });
+  });
+
+  const total = INITIAL_COST_ITEMS.reduce((s,i)=>s+i.cost, 0);
+  const itemsHtml = INITIAL_COST_ITEMS.map(i=>`
+    <div class="cost-popup-item">
+      <span class="cost-popup-label">${i.label}</span>
+      <span class="cost-popup-price">${i.cost.toLocaleString()}원</span>
+    </div>
+  `).join('');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'cost-popup-overlay';
+  overlay.innerHTML = `
+    <div class="cost-popup-box">
+      <div class="cost-popup-title">🐾 입양 준비 완료</div>
+      <div class="cost-popup-sub">${G.name}(이)를 맞이하기 전에 준비한 것들이에요</div>
+      ${itemsHtml}
+      <div class="cost-popup-total">
+        <span class="cost-popup-total-label">합계</span>
+        <span class="cost-popup-total-price">약 ${total.toLocaleString()}원</span>
+      </div>
+      <div class="cost-popup-notice">※ 게임 내 가격은 시중 평균가 기준입니다. 실제 가격은 구매처·지역에 따라 다를 수 있으니 반드시 직접 확인하세요. 입양비는 별도입니다.</div>
+      <button class="cost-popup-confirm" id="cost-popup-btn">확인했어요 — 시작하기</button>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+  document.getElementById('cost-popup-btn').onclick = ()=>{
+    overlay.remove();
+    onConfirm();
+  };
+}
+
+// ═══════════════════════════════
+// 소모품 자동 소진 팝업
+// ═══════════════════════════════
+function checkConsumables(onDone) {
+  const queue = [];
+
+  if(G.foodTurns >= 3) {
+    G.foodTurns = 0;
+    const cost = 22000;
+    G.ledger.push({ label:'키튼 건식사료 1.2kg (재구매)', cost, day:G.absoluteDay });
+    queue.push({ icon:'🍚', title:'사료가 소진되었어요', desc:'건식사료 1.2kg을 자동으로 재구매했습니다', cost });
+  }
+  if(G.litterTurns >= 2) {
+    G.litterTurns = 0;
+    const cost = 9000;
+    G.ledger.push({ label:'벤토나이트 모래 5kg (재구매)', cost, day:G.absoluteDay });
+    queue.push({ icon:'🚽', title:'모래가 소진되었어요', desc:'응고형 벤토나이트 모래 5kg을 재구매했습니다', cost });
+  }
+  if(G.lureTurns >= 4) {
+    G.lureTurns = 0;
+    const cost = 4000;
+    G.ledger.push({ label:'낚싯대 미끼 교체', cost, day:G.absoluteDay });
+    queue.push({ icon:'🪶', title:'미끼가 낡았어요', desc:'낚싯대 미끼를 새것으로 교체했습니다', cost });
+  }
+
+  function showNext() {
+    if(queue.length === 0) { onDone(); return; }
+    const item = queue.shift();
+    showConsumablePopup(item, showNext);
+  }
+  showNext();
+}
+
+function showConsumablePopup(item, onConfirm) {
+  const overlay = document.createElement('div');
+  overlay.className = 'consumable-overlay';
+  overlay.innerHTML = `
+    <div class="consumable-box">
+      <div class="consumable-icon">${item.icon}</div>
+      <div class="consumable-title">${item.title}</div>
+      <div class="consumable-desc">${item.desc}</div>
+      <div class="consumable-cost">−${item.cost.toLocaleString()}원</div>
+      <button class="consumable-confirm" id="consumable-btn">확인</button>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+  document.getElementById('consumable-btn').onclick = ()=>{
+    overlay.remove();
+    onConfirm();
+  };
+}
+
+// ═══════════════════════════════
+// 빗질 미니게임
+// ═══════════════════════════════
+function openGroomMiniGame() {
+  const overlay = document.createElement('div');
+  overlay.id = 'groom-overlay';
+  overlay.className = 'mg-overlay';
+  overlay.innerHTML = `
+    <div class="mg-wrap">
+      <canvas id="groom-canvas" width="390" height="580"></canvas>
+      <div class="mg-bottom-ui">
+        <span class="mg-info" id="groom-info"></span>
+        <button class="mg-exit-btn" id="groom-exit">빗질 끝내기</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+
+  const canvas = document.getElementById('groom-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 390, H = 580;
+  const BRUSH_CX = 195, BRUSH_HX = 485;
+  const BRUSH_MAX = 60;
+
+  // 당일 세션 복원
+  const grSess = G.groomSession;
+  if(grSess.day !== G.absoluteDay){ grSess.day=G.absoluteDay; grSess.progress=0; grSess.strokes=0; }
+
+  let hitPath = null;
+  let surfaceFur = [];
+  let brushFur = 0;
+  let totalStrokes = grSess.strokes;
+  let cleanParticles = [];
+  let isFull = false;
+  let isDragging = false;
+  let lastX = -1, lastY = -1;
+  let groomProgress = grSess.progress;
+  let animId = null;
+
+  function buildHitPath() {
+    hitPath = new Path2D();
+    hitPath.ellipse(195, 185, 105, 70, 0, 0, Math.PI*2);
+    hitPath.ellipse(270, 88, 52, 50, -0.05, 0, Math.PI*2);
+    hitPath.ellipse(95, 190, 20, 55, 0.3, 0, Math.PI*2);
+  }
+
+  function initFur() {
+    surfaceFur = [];
+    [{cx:195,cy:185,rx:96,ry:62},{cx:270,cy:88,rx:44,ry:42}].forEach(({cx,cy,rx,ry})=>{
+      for(let i=0;i<100;i++){
+        const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random());
+        surfaceFur.push({x:cx+rx*r*Math.cos(a),y:cy+ry*r*Math.sin(a),ang:Math.random()*Math.PI,len:5+Math.random()*8,g:140+Math.floor(Math.random()*80),alpha:0.4+Math.random()*0.3});
+      }
+    });
+  }
+
+  function mulberry32(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.arcTo(x+w,y,x+w,y+r,r);c.lineTo(x+w,y+h-r);c.arcTo(x+w,y+h,x+w-r,y+h,r);c.lineTo(x+r,y+h);c.arcTo(x,y+h,x,y+h-r,r);c.lineTo(x,y+r);c.arcTo(x,y,x+r,y,r);c.closePath();}
+
+  function drawCat() {
+    const C='#1e1c38',E='#2e2a52';
+    ctx.save();
+    ctx.beginPath();ctx.moveTo(98,145);ctx.bezierCurveTo(42,128,36,198,60,248);ctx.bezierCurveTo(68,265,90,263,88,248);ctx.bezierCurveTo(68,202,62,138,98,152);ctx.closePath();ctx.fillStyle=C;ctx.fill();ctx.strokeStyle=E;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(195,185,105,70,0,0,Math.PI*2);ctx.fillStyle=C;ctx.fill();ctx.strokeStyle=E;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(238,248,24,11,0.1,0,Math.PI*2);ctx.fillStyle='#1a1832';ctx.fill();ctx.strokeStyle=E;ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(178,251,21,10,-0.05,0,Math.PI*2);ctx.fillStyle='#1a1832';ctx.fill();ctx.strokeStyle=E;ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(270,88,52,50,-0.05,0,Math.PI*2);ctx.fillStyle=C;ctx.fill();ctx.strokeStyle=E;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(234,52);ctx.lineTo(222,26);ctx.lineTo(252,42);ctx.closePath();ctx.fillStyle=C;ctx.fill();ctx.strokeStyle=E;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(235,50);ctx.lineTo(228,32);ctx.lineTo(248,42);ctx.closePath();ctx.fillStyle='#2a1e3a';ctx.fill();
+    ctx.beginPath();ctx.moveTo(292,44);ctx.lineTo(308,18);ctx.lineTo(318,46);ctx.closePath();ctx.fillStyle=C;ctx.fill();ctx.strokeStyle=E;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(294,44);ctx.lineTo(307,24);ctx.lineTo(315,45);ctx.closePath();ctx.fillStyle='#2a1e3a';ctx.fill();
+    [[252,84],[282,82]].forEach(([ex,ey])=>{ctx.beginPath();ctx.ellipse(ex,ey,7,8,0,0,Math.PI*2);ctx.fillStyle='#606080';ctx.fill();ctx.beginPath();ctx.ellipse(ex,ey,3.5,5.5,0,0,Math.PI*2);ctx.fillStyle='#111';ctx.fill();});
+    ctx.beginPath();ctx.moveTo(268,106);ctx.lineTo(263,112);ctx.lineTo(273,112);ctx.closePath();ctx.fillStyle='#c87090';ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.2)';ctx.lineWidth=0.8;
+    [[248,108,220,105],[245,111,218,111],[246,115,220,118]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
+    [[288,108,314,103],[288,111,315,111],[288,115,313,118]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
+    ctx.restore();
+  }
+
+  function drawSurfaceFur() {
+    const fade=Math.max(0,1-groomProgress*1.8);
+    if(fade<=0) return;
+    ctx.save();ctx.lineCap='round';
+    surfaceFur.forEach(f=>{ctx.globalAlpha=f.alpha*fade;ctx.strokeStyle=`rgb(${f.g},${f.g},${f.g})`;ctx.lineWidth=1;const dx=Math.cos(f.ang)*f.len*.5,dy=Math.sin(f.ang)*f.len*.5;ctx.beginPath();ctx.moveTo(f.x-dx,f.y-dy);ctx.lineTo(f.x+dx,f.y+dy);ctx.stroke();});
+    ctx.restore();
+  }
+
+  function drawBrush() {
+    const cx=BRUSH_CX,cy=BRUSH_HX;
+    const furRatio=brushFur/BRUSH_MAX;
+    ctx.save();
+    ctx.strokeStyle='#1e1c3a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(20,430);ctx.lineTo(370,430);ctx.stroke();
+    ctx.beginPath();roundRect(ctx,cx+62,cy-9,100,18,6);ctx.fillStyle='#4a3018';ctx.fill();ctx.strokeStyle='#6a4828';ctx.lineWidth=1;ctx.stroke();
+    ctx.beginPath();roundRect(ctx,cx-78,cy-22,148,44,8);ctx.fillStyle=isFull?'#2e1e28':'#1e1828';ctx.fill();ctx.strokeStyle=isFull?'#6a2a4a':'#2e2848';ctx.lineWidth=1.5;ctx.stroke();
+    const bCnt=14,bSp=136/(bCnt+1);ctx.lineCap='round';
+    for(let i=0;i<bCnt;i++){const bx=cx-68+bSp*(i+1),by1=cy+22,by2=cy+40;ctx.globalAlpha=Math.max(0.15,1-furRatio*0.7);ctx.strokeStyle='#8878a8';ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(bx,by1);ctx.lineTo(bx,by2);ctx.stroke();}
+    ctx.globalAlpha=1;
+    if(brushFur>0){const strands=Math.floor(furRatio*120),rng=mulberry32(42);ctx.lineCap='round';for(let i=0;i<strands;i++){const fx=cx-72+rng()*140,fy=cy+18+rng()*26,lift=furRatio*20,ay=fy-lift*rng(),ang=rng()*Math.PI*0.7+Math.PI*0.15,len=8+rng()*14,g=150+Math.floor(rng()*85);ctx.globalAlpha=0.5+rng()*0.3;ctx.strokeStyle=`rgb(${g},${g},${g})`;ctx.lineWidth=1.1;const dx=Math.cos(ang)*len*.5,dy=Math.sin(ang)*len*.5;ctx.beginPath();ctx.moveTo(fx-dx,ay-dy);ctx.lineTo(fx+dx,ay+dy);ctx.stroke();}ctx.globalAlpha=1;}
+    if(isFull){const pulse=0.3+0.2*Math.sin(Date.now()/300);ctx.globalAlpha=pulse;ctx.strokeStyle='#ff6090';ctx.lineWidth=2;ctx.beginPath();roundRect(ctx,cx-82,cy-26,156,52,10);ctx.stroke();ctx.globalAlpha=1;}
+    ctx.save();ctx.lineCap='round';
+    for(let i=cleanParticles.length-1;i>=0;i--){const p=cleanParticles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.2;p.life-=p.decay;if(p.life<=0){cleanParticles.splice(i,1);continue;}ctx.globalAlpha=p.life*0.75;ctx.strokeStyle=`rgb(${p.g},${p.g},${p.g})`;ctx.lineWidth=1.1;const dx=Math.cos(p.ang)*p.len*.5,dy=Math.sin(p.ang)*p.len*.5;ctx.beginPath();ctx.moveTo(p.x-dx,p.y-dy);ctx.lineTo(p.x+dx,p.y+dy);ctx.stroke();}
+    ctx.restore();
+    ctx.restore();
+  }
+
+  function triggerClean(){if(brushFur===0)return;brushFur=0;isFull=false;for(let i=0;i<30;i++){const sx=BRUSH_CX+(Math.random()-0.5)*130,sy=BRUSH_HX+20+Math.random()*20,ang=-Math.PI*0.5+(Math.random()-0.5)*Math.PI*0.8;cleanParticles.push({x:sx,y:sy,vx:Math.cos(ang)*(1+Math.random()*3),vy:Math.sin(ang)*(2+Math.random()*3)-1,life:1.0,decay:0.025+Math.random()*0.02,len:6+Math.random()*10,ang:Math.random()*Math.PI,g:155+Math.floor(Math.random()*80)});}}
+
+  function isOnBrush(x,y){return x>BRUSH_CX-80&&x<BRUSH_CX+80&&y>BRUSH_HX-38&&y<BRUSH_HX+42;}
+
+  function handleBrush(x,y){
+    if(!hitPath||!ctx.isPointInPath(hitPath,x,y))return;
+    if(isFull)return;
+    const dist=Math.hypot(x-lastX,y-lastY);
+    if(dist<8&&lastX!==-1)return;
+    lastX=x;lastY=y;
+    brushFur=Math.min(BRUSH_MAX,brushFur+Math.max(1,Math.round(4-totalStrokes*0.015)));
+    totalStrokes++;
+    groomProgress=Math.min(1,totalStrokes/100);
+    if(brushFur>=BRUSH_MAX)isFull=true;
+    document.getElementById('groom-info').textContent=`빗질 ${totalStrokes}회 · ${Math.round(groomProgress*100)}%`;
+  }
+
+  function getPos(e){const r=canvas.getBoundingClientRect();const sx=W/r.width,sy=H/r.height;const pt=e.touches?e.touches[0]:e;return{x:(pt.clientX-r.left)*sx,y:(pt.clientY-r.top)*sy};}
+
+  canvas.addEventListener('pointerdown',e=>{const {x,y}=getPos(e);if(isOnBrush(x,y)){triggerClean();e.preventDefault();return;}isDragging=true;lastX=lastY=-1;handleBrush(x,y);e.preventDefault();},{passive:false});
+  canvas.addEventListener('pointermove',e=>{if(!isDragging)return;const {x,y}=getPos(e);handleBrush(x,y);e.preventDefault();},{passive:false});
+  const puHandler=()=>{isDragging=false;};
+  window.addEventListener('pointerup',puHandler);
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#13132a';ctx.fillRect(0,0,W,H);
+    drawCat();drawSurfaceFur();drawBrush();
+    animId=requestAnimationFrame(render);
+  }
+
+  function finishGroomGame(){
+    cancelAnimationFrame(animId);
+    window.removeEventListener('pointerup',puHandler);
+    overlay.remove();
+    // G 세션 저장
+    grSess.progress=groomProgress; grSess.strokes=totalStrokes;
+    const gain=Math.min(70,40+Math.round(groomProgress*30));
+    G.stats.groom=Math.min(100,G.stats.groom+gain);
+    G.careToday.groom=true;
+    updateStatBars();updateCareButtons();
+    updateRoomCat();
+    showToast(`빗질 완료 · 진행도 ${Math.round(groomProgress*100)}%`,'ok');
+  }
+
+  document.getElementById('groom-exit').onclick=finishGroomGame;
+
+  buildHitPath();initFur();
+  const initPct=Math.round(groomProgress*100);
+  document.getElementById('groom-info').textContent=
+    initPct>0 ? `빗질 ${totalStrokes}회 · ${initPct}% (이어서)` : '고양이 위를 드래그해 빗질하세요';
+  render();
+}
+
+// ═══════════════════════════════
+// 발톱 미니게임
+// ═══════════════════════════════
+function openNailMiniGame() {
+  const overlay = document.createElement('div');
+  overlay.id = 'nail-overlay';
+  overlay.className = 'mg-overlay';
+  overlay.innerHTML = `
+    <div class="mg-wrap">
+      <canvas id="nail-canvas" width="390" height="500"></canvas>
+      <div class="mg-bottom-ui">
+        <span class="mg-info" id="nail-info"></span>
+        <button class="mg-tool-btn" id="nail-tool">✂️</button>
+        <button class="mg-next-btn" id="nail-next">다음 →</button>
+        <button class="mg-exit-btn" id="nail-close">✕ 나가기</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+
+  const canvas = document.getElementById('nail-canvas');
+  const ctx = canvas.getContext('2d');
+  const W=390,H=500;
+
+  const PAW_DEFS=[{name:'앞발 (왼)',isBack:false,nailCount:5},{name:'앞발 (오른)',isBack:false,nailCount:5},{name:'뒷발 (왼)',isBack:true,nailCount:4},{name:'뒷발 (오른)',isBack:true,nailCount:4}];
+  const FRONT_TOE=[{x:108,y:178,ang:-0.72},{x:143,y:153,ang:-0.42},{x:175,y:133,ang:-0.14},{x:210,y:129,ang:0.12},{x:243,y:140,ang:0.40}];
+  const BACK_TOE=[{x:148,y:157,ang:-0.35},{x:180,y:136,ang:-0.10},{x:215,y:132,ang:0.12},{x:248,y:143,ang:0.36}];
+  const PAW_END_X=128,QUICK_W=70,BODY_BASE=45,BODY_SCALE=78,TIP_W=16,NAIL_CY=240,NAIL_H=40;
+
+  function makePaw(def){
+    const ni=G.chapter===1?7:14;
+    const daysSince=G.absoluteDay-G.lastNailDay;
+    const gr=Math.min(1,Math.max(0,daysSince/ni));
+    const baseLen=0.3+gr*1.1; // 0.3(방금자름)~1.4(만기)
+    return{...def,nails:Array.from({length:def.nailCount},()=>({length:baseLen+(Math.random()*0.12-0.06),cut:false,cutX:null,cutZone:null,bleeding:false}))};
+  }
+  const paws=PAW_DEFS.map(makePaw);
+
+  let screen='overview',currentPaw=0,currentNail=0,fadeAlpha=0,hoverX=-1,cutTotal=0,escapeAnim=0,shakeTimer=0,animId=null;
+  const ESCAPE_EMOJIS=['😾','🙀','😿'];
+  let escapeEmoji='😾';
+
+  function getZones(nail){const pe=PAW_END_X,qe=pe+QUICK_W,be=qe+BODY_BASE+(nail.length-0.6)*BODY_SCALE,te=be+TIP_W;return{paw_end:pe,quick_end:qe,body_end:be,tip_end:te};}
+  function zoneAt(x,nail){const z=getZones(nail);if(x<=z.paw_end)return'paw';if(x<=z.quick_end)return'quick';if(x<=z.body_end)return'body';if(x<=z.tip_end)return'tip';return'outside';}
+  function escapeChance(){const paw=paws[currentPaw];return Math.min(0.65,(paw.isBack?0.22:0.10)+cutTotal*0.025);}
+
+  function drawCloseup(){
+    const nail=paws[currentPaw].nails[currentNail];
+    const z=getZones(nail);
+    const tipX=nail.cut?nail.cutX:z.tip_end;
+    [{x:60,w:z.paw_end-60,color:'rgba(120,90,60,0.07)',label:'발'},{x:z.paw_end,w:QUICK_W,color:'rgba(220,60,70,0.07)',label:'혈관'},{x:z.quick_end,w:z.body_end-z.quick_end,color:'rgba(60,180,100,0.04)',label:'안전'},{x:z.body_end,w:TIP_W,color:'rgba(220,210,160,0.04)',label:''}].forEach(({x,w,color,label})=>{if(w<=0)return;ctx.fillStyle=color;ctx.fillRect(x,55,w,H-100);if(label){ctx.fillStyle='rgba(255,255,255,0.13)';ctx.font='10px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText(label,x+w/2,78);}});
+    ctx.beginPath();ctx.roundRect(50,NAIL_CY-NAIL_H*0.85,z.paw_end-50+4,NAIL_H*1.7,[8,0,0,8]);ctx.fillStyle='#3a2e28';ctx.fill();ctx.strokeStyle='#5a4838';ctx.lineWidth=1.5;ctx.stroke();
+    if(tipX>z.paw_end){const midX=z.paw_end+(tipX-z.paw_end)*0.5,topY=NAIL_CY-NAIL_H*0.52,tipY=NAIL_CY-NAIL_H*0.06;ctx.beginPath();ctx.moveTo(z.paw_end,NAIL_CY-NAIL_H*0.46);ctx.quadraticCurveTo(midX,topY-4,tipX,tipY);ctx.quadraticCurveTo(midX,NAIL_CY+NAIL_H*0.44,z.paw_end,NAIL_CY+NAIL_H*0.46);ctx.closePath();const gr=ctx.createLinearGradient(z.paw_end,0,tipX,0);const qr=Math.min(1,QUICK_W/(tipX-z.paw_end));gr.addColorStop(0,'#c86878');gr.addColorStop(qr*0.7,'#e08898');gr.addColorStop(qr,'#d4b870');gr.addColorStop(0.88,'#e8d8a0');gr.addColorStop(1.0,'#f0ece8');ctx.fillStyle=gr;ctx.fill();ctx.save();ctx.clip();[NAIL_CY-5,NAIL_CY+3].forEach(ly=>{ctx.beginPath();ctx.moveTo(z.paw_end+4,ly);ctx.lineTo(z.quick_end-8,ly);ctx.strokeStyle='rgba(200,80,100,0.28)';ctx.lineWidth=1;ctx.stroke();});ctx.restore();ctx.beginPath();ctx.moveTo(z.paw_end,NAIL_CY-NAIL_H*0.46);ctx.quadraticCurveTo(midX,topY-4,tipX,tipY);ctx.quadraticCurveTo(midX,NAIL_CY+NAIL_H*0.44,z.paw_end,NAIL_CY+NAIL_H*0.46);ctx.closePath();ctx.strokeStyle='rgba(80,55,35,0.55)';ctx.lineWidth=1.2;ctx.stroke();}
+    if(nail.cut){ctx.beginPath();ctx.moveTo(nail.cutX,NAIL_CY-NAIL_H*0.58);ctx.lineTo(nail.cutX,NAIL_CY+NAIL_H*0.58);ctx.strokeStyle=nail.bleeding?'#ff4466':'#d4d0c0';ctx.lineWidth=2.2;ctx.stroke();if(nail.bleeding){for(let i=0;i<5;i++){ctx.beginPath();ctx.ellipse(nail.cutX+(Math.sin(i*2))*3,NAIL_CY+NAIL_H*0.15+i*8,2.5+i*0.4,3.8+i*0.6,0,0,Math.PI*2);ctx.fillStyle=`rgba(220,40,60,${0.82-i*0.14})`;ctx.fill();}ctx.fillStyle='rgba(255,80,100,0.75)';ctx.font='bold 14px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('혈관을 건드렸어요',W/2,H-80);}else if(nail.cutZone==='tip'){ctx.fillStyle='rgba(200,160,60,0.55)';ctx.font='12px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('많이 짧아지지 않았어요',W/2,H-80);}}
+    if(!nail.cut&&hoverX>=z.paw_end&&hoverX<=z.tip_end){const hz=zoneAt(hoverX,nail);ctx.save();if(hz==='quick')ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(hoverX,NAIL_CY-NAIL_H*0.65);ctx.lineTo(hoverX,NAIL_CY+NAIL_H*0.65);ctx.strokeStyle=hz==='quick'?'rgba(255,80,80,0.85)':'rgba(100,220,140,0.85)';ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);ctx.restore();}
+    if(!nail.cut){ctx.fillStyle='rgba(255,255,255,0.15)';ctx.font='11px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('발톱을 탭해서 자르세요',W/2,H-38);}
+  }
+
+  const PAW_CX=195,PAW_CY=235;
+  function drawPawOverview(pi){
+    const paw=paws[pi];const toes=paw.isBack?BACK_TOE:FRONT_TOE;
+    ctx.beginPath();ctx.ellipse(PAW_CX,PAW_CY+12,78,68,0,0,Math.PI*2);ctx.fillStyle='#2a2245';ctx.fill();ctx.strokeStyle='#3a3060';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(PAW_CX,PAW_CY+30,42,30,0,0,Math.PI*2);ctx.fillStyle='#1e1a38';ctx.fill();
+    const toeBase=paw.isBack?[{cx:148,cy:172},{cx:180,cy:152},{cx:215,cy:149},{cx:248,cy:160}]:[{cx:110,cy:193},{cx:143,cy:167},{cx:174,cy:148},{cx:210,cy:144},{cx:243,cy:155}];
+    toeBase.forEach(({cx,cy})=>{ctx.beginPath();ctx.ellipse(cx,cy,22,21,0,0,Math.PI*2);ctx.fillStyle='#2a2245';ctx.fill();ctx.strokeStyle='#3a3060';ctx.lineWidth=1.2;ctx.stroke();ctx.beginPath();ctx.ellipse(cx,cy+4,12,10,0,0,Math.PI*2);ctx.fillStyle='#1e1a38';ctx.fill();});
+    paw.nails.forEach((nail,i)=>{const toe=toes[i];const len=nail.cut?Math.max(10,10+nail.length*10):12+nail.length*18;ctx.save();ctx.translate(toe.x,toe.y);ctx.rotate(toe.ang);ctx.beginPath();ctx.moveTo(-3,0);ctx.bezierCurveTo(0,-len*0.38,len*0.5,-len*0.55,len,0);ctx.bezierCurveTo(len*0.5,len*0.1,0,len*0.04,-3,0);ctx.closePath();const gr=ctx.createLinearGradient(0,0,len,0);if(nail.bleeding){gr.addColorStop(0,'#c86878');gr.addColorStop(1,'#c0b0a0');}else{gr.addColorStop(0,'#c87888');gr.addColorStop(0.35,'#d4b870');gr.addColorStop(0.85,'#e8d8a0');gr.addColorStop(1,'#f0ece0');}ctx.fillStyle=gr;ctx.fill();ctx.strokeStyle='rgba(60,40,30,0.45)';ctx.lineWidth=0.8;ctx.stroke();if(nail.cut){ctx.beginPath();ctx.moveTo(len*0.5,-4);ctx.lineTo(len*0.5,4);ctx.strokeStyle='rgba(200,195,175,0.7)';ctx.lineWidth=1.5;ctx.stroke();}ctx.restore();});
+    const done=paw.nails.filter(n=>n.cut).length;ctx.fillStyle='rgba(255,255,255,0.22)';ctx.font='12px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText(`${paw.name}  ·  ${done}/${paw.nailCount}`,W/2,H-42);
+  }
+
+  function drawEscape(){
+    escapeAnim=Math.min(1,escapeAnim+0.04);ctx.fillStyle=`rgba(13,13,28,${escapeAnim*0.82})`;ctx.fillRect(0,0,W,H);
+    const scale=0.6+escapeAnim*0.4;ctx.save();ctx.translate(W/2,H/2-30);ctx.scale(scale,scale);ctx.font='80px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(escapeEmoji,0,0);ctx.restore();
+    ctx.globalAlpha=escapeAnim;ctx.fillStyle='rgba(255,255,255,0.75)';ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('고양이가 도망쳤어요',W/2,H/2+52);ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='11px Apple SD Gothic Neo,sans-serif';ctx.fillText('탭해서 다시 잡기',W/2,H/2+76);ctx.globalAlpha=1;
+  }
+
+  function drawPawDone(){const paw=paws[currentPaw];const bled=paw.nails.filter(n=>n.bleeding).length;ctx.fillStyle='rgba(200,168,130,0.08)';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText(`${paw.name} 완료`,W/2,H/2-16);if(bled>0){ctx.fillStyle='rgba(255,100,120,0.65)';ctx.font='12px Apple SD Gothic Neo,sans-serif';ctx.fillText(`혈관 ${bled}곳 손상`,W/2,H/2+10);}}
+  function drawDone(){const totalBled=paws.reduce((a,p)=>a+p.nails.filter(n=>n.bleeding).length,0);ctx.fillStyle='rgba(200,168,130,0.08)';ctx.fillRect(0,0,W,H);ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='bold 16px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('발톱 손질 완료',W/2,H/2-18);ctx.fillStyle='rgba(200,168,130,0.55)';ctx.font='12px Apple SD Gothic Neo,sans-serif';ctx.fillText(`총 ${cutTotal}개 자름`,W/2,H/2+8);if(totalBled>0){ctx.fillStyle='rgba(255,110,130,0.65)';ctx.fillText(`혈관 손상 ${totalBled}곳`,W/2,H/2+30);}}
+
+  function updateUI(){
+    const paw=paws[currentPaw];
+    const infoEl=document.getElementById('nail-info');
+    const toolBtn=document.getElementById('nail-tool');
+    const nextBtn=document.getElementById('nail-next');
+    toolBtn.style.display='';toolBtn.disabled=false;nextBtn.className='mg-next-btn';
+    if(screen==='overview'){infoEl.textContent=paw.name;toolBtn.textContent='✂️';nextBtn.textContent='다음 발 →';nextBtn.className='mg-next-btn show';}
+    else if(screen==='closeup'){infoEl.textContent=`${currentNail+1} / ${paw.nailCount}`;toolBtn.style.display='none';nextBtn.textContent='건너뛰기 →';nextBtn.className='mg-next-btn show';}
+    else if(screen==='result'){infoEl.textContent=`${currentNail+1} / ${paw.nailCount}`;toolBtn.style.display='none';nextBtn.textContent='다음 →';nextBtn.className='mg-next-btn show';}
+    else if(screen==='escape'){infoEl.textContent='';toolBtn.style.display='none';}
+    else if(screen==='pawDone'){infoEl.textContent='';toolBtn.style.display='none';nextBtn.textContent=currentPaw<paws.length-1?'다음 발 →':'완료';nextBtn.className='mg-next-btn show';}
+    else if(screen==='done'){infoEl.textContent='';toolBtn.style.display='none';nextBtn.textContent='닫기';nextBtn.className='mg-next-btn show';}
+  }
+
+  function render(){
+    let sx=0;if(shakeTimer>0){sx=(Math.random()-0.5)*5*(shakeTimer/18);shakeTimer--;}
+    ctx.save();ctx.translate(sx,0);ctx.clearRect(-10,0,W+20,H);ctx.fillStyle='#13132a';ctx.fillRect(-10,0,W+20,H);
+    if(screen==='overview')drawPawOverview(currentPaw);
+    else if(screen==='fadeIn'){drawPawOverview(currentPaw);ctx.fillStyle=`rgba(13,13,28,${fadeAlpha})`;ctx.fillRect(0,0,W,H);fadeAlpha+=0.07;if(fadeAlpha>=1){screen='closeup';updateUI();}}
+    else if(screen==='closeup'||screen==='result')drawCloseup();
+    else if(screen==='escape'){drawCloseup();drawEscape();}
+    else if(screen==='pawDone')drawPawDone();
+    else if(screen==='done')drawDone();
+    ctx.restore();
+    animId=requestAnimationFrame(render);
+  }
+
+  function getPos(e){const r=canvas.getBoundingClientRect();const sx=W/r.width,sy=H/r.height;const pt=e.touches?e.touches[0]:e;return{x:(pt.clientX-r.left)*sx,y:(pt.clientY-r.top)*sy};}
+
+  canvas.addEventListener('pointermove',e=>{if(screen!=='closeup')return;hoverX=getPos(e).x;});
+  canvas.addEventListener('pointerleave',()=>{hoverX=-1;});
+  canvas.addEventListener('pointerdown',e=>{
+    e.preventDefault();
+    if(screen==='escape'){screen='result';escapeAnim=0;updateUI();return;}
+    if(screen!=='closeup')return;
+    const {x,y}=getPos(e);
+    if(y<NAIL_CY-NAIL_H||y>NAIL_CY+NAIL_H)return;
+    const nail=paws[currentPaw].nails[currentNail];
+    if(nail.cut)return;
+    const z=getZones(nail);const zone=zoneAt(x,nail);
+    if(zone==='paw'||zone==='outside')return;
+    nail.cut=true;nail.cutX=x;nail.cutZone=zone;nail.bleeding=(zone==='quick');cutTotal++;
+    screen='result';
+    const escMod=nail.bleeding?2:1;
+    if(Math.random()<escapeChance()*escMod){escapeEmoji=ESCAPE_EMOJIS[Math.floor(Math.random()*ESCAPE_EMOJIS.length)];setTimeout(()=>{screen='escape';escapeAnim=0;shakeTimer=18;updateUI();},600);}
+    updateUI();
+  },{passive:false});
+
+  document.getElementById('nail-tool').addEventListener('click',()=>{if(screen==='overview'){currentNail=0;screen='fadeIn';fadeAlpha=0;updateUI();}});
+  document.getElementById('nail-next').addEventListener('click',()=>{
+    if(screen==='overview'){currentPaw++;if(currentPaw>=paws.length){screen='done';updateUI();}else{currentNail=0;screen='overview';updateUI();}}
+    else if(screen==='closeup'){currentNail++;if(currentNail>=paws[currentPaw].nailCount){screen='pawDone';updateUI();}else{screen='closeup';updateUI();}}
+    else if(screen==='result'){currentNail++;if(currentNail>=paws[currentPaw].nailCount){screen='pawDone';updateUI();}else{screen='closeup';updateUI();}}
+    else if(screen==='pawDone'){currentPaw++;if(currentPaw>=paws.length){screen='done';updateUI();}else{currentNail=0;screen='overview';updateUI();}}
+    else if(screen==='done'){finishNailGame();}
+  });
+  document.getElementById('nail-close').addEventListener('click',()=>{ finishNailGame(); });
+
+  function finishNailGame(){
+    if(!overlay.parentNode)return;
+    cancelAnimationFrame(animId);
+    overlay.remove();
+    const totalBled=paws.reduce((a,p)=>a+p.nails.filter(n=>n.bleeding).length,0);
+    const gain=Math.max(0,Math.min(50,cutTotal*2.8)-totalBled*5);
+    G.stats.nail=Math.min(100,(G.stats.nail||50)+gain);
+    G.careToday.nail=true;
+    G.lastNailDay=G.absoluteDay;
+    G.stats.stress=Math.min(100,G.stats.stress+totalBled*5);
+    updateStatBars();updateCareButtons();
+    updateRoomCat();
+    const msg=totalBled>0?`발톱 ${cutTotal}개 완료 (혈관 ${totalBled}곳 손상)`:cutTotal>0?`발톱 ${cutTotal}개 손질 완료 ✓`:'발톱 확인 완료';
+    showToast(msg,totalBled>0?'warn':'ok');
+  }
+
+  updateUI();render();
+}
+
+// ═══════════════════════════════
+// 양치 미니게임
+// ═══════════════════════════════
+function openTeethMiniGame() {
+  const overlay = document.createElement('div');
+  overlay.id = 'teeth-overlay';
+  overlay.className = 'mg-overlay';
+  overlay.innerHTML = `
+    <div class="mg-wrap">
+      <canvas id="teeth-canvas" width="390" height="500"></canvas>
+      <div class="mg-bottom-ui">
+        <span class="mg-info" id="teeth-info"></span>
+        <button class="mg-tool-btn" id="teeth-tool">🪥</button>
+        <button class="mg-exit-btn" id="teeth-exit">양치 끝내기</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+
+  const canvas = document.getElementById('teeth-canvas');
+  const ctx = canvas.getContext('2d');
+  const W=390,H=500;
+
+  const ZONES=[
+    {id:'u_incisor',name:'윗 앞니',x:52,y:148,w:65,h:52,importance:0,row:'upper'},
+    {id:'u_canine',name:'송곳니',x:117,y:138,w:38,h:68,importance:1,row:'upper'},
+    {id:'u_pre',name:'앞어금니',x:155,y:148,w:78,h:56,importance:1,row:'upper'},
+    {id:'u_carnas',name:'열육치',x:233,y:144,w:80,h:60,importance:2,row:'upper'},
+    {id:'l_incisor',name:'아랫 앞니',x:52,y:298,w:68,h:48,importance:0,row:'lower'},
+    {id:'l_canine',name:'송곳니',x:120,y:294,w:35,h:55,importance:1,row:'lower'},
+    {id:'l_pre',name:'앞어금니',x:155,y:294,w:72,h:54,importance:1,row:'lower'},
+    {id:'l_carnas',name:'열육치',x:227,y:290,w:78,h:58,importance:2,row:'lower'},
+  ];
+  // 당일 세션 복원
+  const thSess = G.teethSession;
+  if(thSess.day !== G.absoluteDay || !thSess.zones){
+    thSess.day = G.absoluteDay;
+    thSess.zones = {};
+    ZONES.forEach(z=>{ thSess.zones[z.id]=0; });
+  }
+  ZONES.forEach(z=>{ z.coverage=thSess.zones[z.id]||0; z.foamDots=[]; });
+
+  let toolActive=false,isDragging=false,lastX=-1,lastY=-1,totalStrokes=0,sessionEnded=false,eventActive=false,animId=null;
+  const EVENT_CHOICES=[{text:'살살 달래며 계속',type:'calm'},{text:'간식으로 유도',type:'snack'},{text:'억지로 잡고 계속',type:'force'},{text:'오늘은 포기',type:'quit'}];
+
+  function drawMouth(){
+    ctx.fillStyle='#1a1028';ctx.fillRect(0,0,W,H);
+    ctx.beginPath();ctx.ellipse(175,275,130,45,0,0,Math.PI*2);ctx.fillStyle='#5a2a38';ctx.fill();
+    ctx.beginPath();ctx.roundRect(40,80,290,90,[0,0,30,30]);ctx.fillStyle='#3a1e2e';ctx.fill();
+    ctx.beginPath();ctx.roundRect(40,340,290,80,[30,30,0,0]);ctx.fillStyle='#3a1e2e';ctx.fill();
+    ctx.beginPath();ctx.roundRect(44,130,282,30,[0,0,10,10]);ctx.fillStyle='#8a3848';ctx.fill();
+    ctx.beginPath();ctx.roundRect(44,342,282,24,[10,10,0,0]);ctx.fillStyle='#8a3848';ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.12)';ctx.font='10px Apple SD Gothic Neo,sans-serif';ctx.textAlign='left';ctx.fillText('앞 →',46,122);ctx.textAlign='right';ctx.fillText('← 뒤',342,122);
+    ZONES.forEach(z=>drawZone(z));
+  }
+
+  function drawZone(z){
+    const cov=z.coverage,yellow=Math.max(0,1-cov/80),r=Math.round(245-yellow*40),g=Math.round(245-yellow*60),b=Math.round(220-yellow*30);
+    ctx.fillStyle=`rgb(${r},${g},${b})`;
+    if(z.id==='u_canine'){ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h-20,[4,4,0,0]);ctx.fill();ctx.beginPath();ctx.moveTo(z.x+4,z.y+z.h-20);ctx.lineTo(z.x+z.w-4,z.y+z.h-20);ctx.lineTo(z.x+z.w/2,z.y+z.h+2);ctx.closePath();ctx.fill();}
+    else if(z.id==='l_canine'){ctx.beginPath();ctx.roundRect(z.x,z.y+20,z.w,z.h-20,[0,0,4,4]);ctx.fill();ctx.beginPath();ctx.moveTo(z.x+3,z.y+20);ctx.lineTo(z.x+z.w-3,z.y+20);ctx.lineTo(z.x+z.w/2,z.y-2);ctx.closePath();ctx.fill();}
+    else if(z.row==='upper'){ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,[4,4,12,12]);ctx.fill();}
+    else{ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,[12,12,4,4]);ctx.fill();}
+    if(z.importance===2&&cov<60){const pulse=0.15+0.1*Math.sin(Date.now()/600);ctx.strokeStyle=`rgba(220,160,60,${pulse+(cov<30?0.15:0)})`;ctx.lineWidth=2;if(z.row==='upper'){ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,[4,4,12,12]);ctx.stroke();}else{ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,[12,12,4,4]);ctx.stroke();}}
+    if(cov>0){ctx.save();if(z.row==='upper'){ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,[4,4,12,12]);ctx.clip();}else{ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,[12,12,4,4]);ctx.clip();}z.foamDots.forEach(d=>{ctx.globalAlpha=d.a*(cov/100)*0.7;ctx.fillStyle='rgba(200,230,255,1)';ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;ctx.restore();}
+    if(z.importance===2){ctx.fillStyle='rgba(220,160,60,0.7)';ctx.font='9px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText(z.name,z.x+z.w/2,z.row==='upper'?z.y-6:z.y+z.h+14);}
+  }
+
+  function drawCoverageBars(){
+    const barZones=[{label:'윗 앞니',ids:['u_incisor']},{label:'송곳니',ids:['u_canine','l_canine']},{label:'앞어금니',ids:['u_pre','l_pre']},{label:'열육치 ★',ids:['u_carnas','l_carnas'],important:true}];
+    const sx=316,sy=148,bW=52,bH=10,gap=36;
+    barZones.forEach((group,i)=>{
+      const y=sy+i*gap,avg=group.ids.reduce((s,id)=>{const z=ZONES.find(z=>z.id===id);return s+(z?z.coverage:0);},0)/group.ids.length;
+      ctx.fillStyle=group.important?'rgba(220,160,60,0.75)':'rgba(255,255,255,0.25)';ctx.font=`${group.important?'bold ':''} 9px Apple SD Gothic Neo,sans-serif`;ctx.textAlign='left';ctx.fillText(group.label,sx,y-3);
+      ctx.fillStyle='rgba(255,255,255,0.07)';ctx.beginPath();ctx.roundRect(sx,y,bW,bH,4);ctx.fill();
+      const fillW=(avg/100)*bW;if(fillW>0){const col=avg>70?'#7ac890':avg>35?'#c8a870':'#c85868';ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(sx,y,fillW,bH,4);ctx.fill();}
+    });
+  }
+
+  function drawEventOverlay(){
+    ctx.fillStyle='rgba(10,8,22,0.88)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,0.7)';ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.fillText('고양이가 발버둥쳐요 😾',W/2,110);
+    ctx.fillStyle='rgba(255,255,255,0.3)';ctx.font='11px Apple SD Gothic Neo,sans-serif';ctx.fillText('어떻게 할까요?',W/2,135);
+    EVENT_CHOICES.forEach((c,i)=>{
+      const y=168+i*72;
+      ctx.fillStyle='rgba(255,255,255,0.06)';ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(24,y,W-48,58,10);ctx.fill();ctx.stroke();
+      ctx.fillStyle='rgba(200,168,130,0.6)';ctx.font='bold 13px Apple SD Gothic Neo,sans-serif';ctx.textAlign='left';ctx.fillText(`${i+1}`,40,y+24);
+      ctx.fillStyle='rgba(255,255,255,0.75)';ctx.font='13px Apple SD Gothic Neo,sans-serif';ctx.fillText(c.text,58,y+33);
+    });
+  }
+
+  function render(){ctx.clearRect(0,0,W,H);drawMouth();drawCoverageBars();if(eventActive)drawEventOverlay();animId=requestAnimationFrame(render);}
+
+  function getZoneAt(x,y){for(let i=ZONES.length-1;i>=0;i--){const z=ZONES[i];if(x>=z.x&&x<=z.x+z.w&&y>=z.y&&y<=z.y+z.h)return z;}return null;}
+
+  function brush(x,y){
+    if(!toolActive||sessionEnded||eventActive)return;
+    const dist=Math.hypot(x-lastX,y-lastY);if(dist<5&&lastX!==-1)return;lastX=x;lastY=y;
+    const z=getZoneAt(x,y);if(!z)return;
+    const gain=z.importance===2?2.5:z.importance===1?3.5:4;z.coverage=Math.min(100,z.coverage+gain);totalStrokes++;
+    thSess.zones[z.id]=z.coverage; // G 실시간 동기화
+    if(z.foamDots.length<80)z.foamDots.push({x:x+(Math.random()-0.5)*10,y:y+(Math.random()-0.5)*10,r:2+Math.random()*3.5,a:0.4+Math.random()*0.5});
+    const backBonus=z.importance===2?0.06:0,chance=0.004+backBonus+totalStrokes*0.00015;
+    if(Math.random()<chance)triggerEvent();
+    const imp=ZONES.filter(z=>z.importance===2),avg=Math.round(imp.reduce((s,z)=>s+z.coverage,0)/imp.length);
+    document.getElementById('teeth-info').textContent=toolActive?`열육치 ${avg}%`:'';
+  }
+
+  function triggerEvent(){if(eventActive||sessionEnded)return;eventActive=true;toolActive=false;document.getElementById('teeth-tool').classList.remove('active');}
+
+  function handleEventChoice(idx){
+    const c=EVENT_CHOICES[idx];eventActive=false;
+    if(c.type==='quit'){sessionEnded=true;document.getElementById('teeth-info').textContent='오늘은 여기까지';return;}
+    if(c.type==='force')ZONES.forEach(z=>{z.coverage=Math.max(0,z.coverage-8);thSess.zones[z.id]=z.coverage;});
+    toolActive=true;document.getElementById('teeth-tool').classList.add('active');lastX=lastY=-1;
+  }
+
+  document.getElementById('teeth-tool').addEventListener('click',()=>{
+    if(sessionEnded||eventActive)return;toolActive=!toolActive;document.getElementById('teeth-tool').classList.toggle('active',toolActive);if(!toolActive)lastX=lastY=-1;
+    const imp=ZONES.filter(z=>z.importance===2),avg=Math.round(imp.reduce((s,z)=>s+z.coverage,0)/imp.length);
+    document.getElementById('teeth-info').textContent=toolActive?`열육치 ${avg}%`:'';
+  });
+
+  function getPos(e){const r=canvas.getBoundingClientRect();const sx=W/r.width,sy=H/r.height;const pt=e.touches?e.touches[0]:e;return{x:(pt.clientX-r.left)*sx,y:(pt.clientY-r.top)*sy};}
+
+  canvas.addEventListener('pointerdown',e=>{
+    e.preventDefault();const {x,y}=getPos(e);
+    if(eventActive){const cy0=168;for(let i=0;i<4;i++){const cy=cy0+i*72;if(x>=24&&x<=W-24&&y>=cy&&y<=cy+58){handleEventChoice(i);return;}}return;}
+    isDragging=true;lastX=lastY=-1;brush(x,y);
+  },{passive:false});
+  canvas.addEventListener('pointermove',e=>{if(!isDragging)return;e.preventDefault();const {x,y}=getPos(e);brush(x,y);},{passive:false});
+  const puHandler2=()=>{isDragging=false;};
+  window.addEventListener('pointerup',puHandler2);
+
+  function finishTeethGame(){
+    cancelAnimationFrame(animId);window.removeEventListener('pointerup',puHandler2);overlay.remove();
+    // G 세션 저장 (이미 brush에서 실시간 동기화되므로 최종 확인만)
+    ZONES.forEach(z=>{ thSess.zones[z.id]=z.coverage; });
+    const imp=ZONES.filter(z=>z.importance===2),avgImp=imp.reduce((s,z)=>s+z.coverage,0)/imp.length;
+    const allAvg=ZONES.reduce((s,z)=>s+z.coverage,0)/ZONES.length;
+    const gain=Math.round((avgImp*0.6+allAvg*0.4)*0.3)+5;
+    G.stats.dental=Math.min(100,G.stats.dental+gain);
+    G.careToday.teeth=true;G.lastTeethDay=G.absoluteDay;
+    updateStatBars();updateCareButtons();
+    updateRoomCat();
+    showToast(`양치 완료 (+${gain}) ✓`,'ok');
+  }
+
+  document.getElementById('teeth-exit').onclick=finishTeethGame;
+  render();
+}
+
+// ═══════════════════════════════
+// 놀이 미니게임
+// ═══════════════════════════════
+function openPlayMiniGame() {
+  const overlay = document.createElement('div');
+  overlay.id = 'play-overlay';
+  overlay.className = 'play-mg-overlay';
+  overlay.innerHTML = `
+    <div class="play-mg-wrap">
+      <canvas id="play-mg-canvas" width="390" height="520"></canvas>
+      <div id="play-tut" class="play-tut-overlay hidden">
+        <div class="play-tut-box">
+          <div class="play-tut-title">🎣 낚싯대 놀이</div>
+          <ul class="play-tut-body">
+            <li>장난감을 <span class="play-tut-hl">드래그</span>해서 고양이의 관심을 끌어보세요</li>
+            <li>고양이가 충분히 반응하면 본격적인 놀이가 시작됩니다</li>
+            <li>너무 빠르거나 가만히 있으면 흥미를 잃어요</li>
+            <li>놀이 중 <span class="play-tut-hl">마지막엔 꼭 잡히게</span> 해줘야 고양이가 만족해요</li>
+            <li>미끼 종류를 바꿔가며 반응을 살펴보세요</li>
+          </ul>
+          <button class="play-tut-close" id="play-tut-close">알겠어요</button>
+        </div>
+      </div>
+      <div id="play-caught-popup" class="play-tut-overlay hidden">
+        <div class="play-tut-box" style="text-align:center">
+          <div style="font-size:42px;margin-bottom:12px">😸</div>
+          <div class="play-tut-title" style="margin-bottom:10px">잡았다!</div>
+          <div class="play-tut-body" style="text-align:center;margin-bottom:4px">포획 <span id="pl-caught-cnt">0</span>회 · 만족도 <span id="pl-caught-sat">0</span>%</div>
+          <button class="play-tut-close" id="play-caught-btn">다시 놀기</button>
+        </div>
+      </div>
+      <div id="play-bored-popup" class="play-tut-overlay hidden">
+        <div class="play-tut-box" style="text-align:center">
+          <div style="font-size:36px;margin-bottom:14px">😾</div>
+          <div class="play-tut-title" style="margin-bottom:10px">고양이가 흥미를 잃었어요</div>
+          <div class="play-tut-body" style="text-align:center;margin-bottom:4px">미끼를 바꾸거나<br>다시 관심을 끌어보세요</div>
+          <button class="play-tut-close" id="play-bored-btn">다시 시도</button>
+        </div>
+      </div>
+      <div id="play-lure-menu" class="play-lure-panel hidden">
+        <div style="color:rgba(255,255,255,0.25);font-size:10px;margin-bottom:12px">미끼 선택</div>
+        <div class="play-lure-grid" id="play-lure-grid"></div>
+      </div>
+      <div class="play-bottom-ui">
+        <button class="play-lure-btn" id="play-lure-btn">🪶 미끼</button>
+        <button class="play-help-btn" id="play-help-btn">?</button>
+        <button class="play-exit-btn" id="play-exit-btn">놀이 끝내기</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('app').appendChild(overlay);
+
+  const canvas = document.getElementById('play-mg-canvas');
+  const ctx = canvas.getContext('2d');
+  const PW=390,PH=520,PC_X=195,PC_Y=400,CATCH_R=55;
+  const PL_TUTORIAL_KEY='cat_game_play_v1';
+  const PL_PER_CATCH_MAX=40;
+  const PL_LURES=[{id:'feather',name:'깃털',emoji:'🪶'},{id:'mouse',name:'생쥐 인형',emoji:'🐭'},{id:'bell',name:'방울',emoji:'🔔'},{id:'foil',name:'은박 볼',emoji:'💿'},{id:'yarn',name:'털실',emoji:'🧶'}];
+
+  // 당일 세션 복원 or 신규
+  const plSess = G.playSession;
+  if(plSess.day !== G.absoluteDay){
+    plSess.day = G.absoluteDay;
+    plSess.filled = 0;
+    plSess.need = [200,280,360,400,480,560][Math.floor(Math.random()*6)];
+    plSess.catchCount = 0;
+    plSess.lastWasCatch = false;
+  }
+  const PL_playNeed = plSess.need;
+
+  const catPrefPL={};PL_LURES.forEach(l=>{catPrefPL[l.id]=0.5+Math.random();});
+  let PL_currentLure='feather';
+  const PL_lureTried={};PL_LURES.forEach(l=>{PL_lureTried[l.id]=false;});PL_lureTried['feather']=true;
+  // 이전 세션 진행도 복원
+  let PL_playFilled=plSess.filled,PL_gamePhase='attract',PL_attractHadFirstPlay=PL_playFilled>0,PL_attractEng=0;
+  let PL_catAttractState='sleeping',PL_transTimer=0,PL_interest=0,PL_engagement=0;
+  let PL_catchCount=plSess.catchCount,PL_lastWasCatch=plSess.lastWasCatch,PL_catState='idle',PL_catchTimer=0,PL_catchZoneTimer=0,PL_pounceAnim=0;
+  let PL_toyX=PW/2,PL_toyY=200,PL_prevX=PW/2,PL_prevY=200,PL_toySpeed=0,PL_toyVisible=false,PL_isDragging=false;
+  let PL_animId=null;
+
+  function PL_update(){
+    PL_toySpeed=Math.hypot(PL_toyX-PL_prevX,PL_toyY-PL_prevY);PL_prevX=PL_toyX;PL_prevY=PL_toyY;
+    if(PL_gamePhase==='attract')PL_updateAttract();
+    else if(PL_gamePhase==='transitioning')PL_updateTransition();
+    else if(PL_gamePhase==='play')PL_updatePlay();
+  }
+
+  function PL_updateAttract(){
+    if(!PL_toyVisible){PL_catAttractState=PL_attractHadFirstPlay?'idle':'sleeping';return;}
+    const pref=catPrefPL[PL_currentLure],dist=Math.hypot(PL_toyX-PC_X,PL_toyY-PC_Y),near=dist<200;
+    const speedScore=PL_toySpeed<0.5?-0.5:PL_toySpeed<3?0.3*pref:PL_toySpeed<15?0.6*pref:0.05;
+    const distMult=near?1.0:0.35;
+    const interestMult=PL_attractHadFirstPlay?Math.max(0.4,PL_interest/100):1.0;
+    PL_attractEng=Math.max(0,Math.min(100,PL_attractEng+(speedScore*distMult*interestMult)-0.07));
+    if(PL_attractHadFirstPlay){if(PL_attractEng<15)PL_catAttractState='idle';else if(PL_attractEng<42)PL_catAttractState='noticing';else PL_catAttractState='watching';}
+    else{if(PL_attractEng<10)PL_catAttractState='sleeping';else if(PL_attractEng<28)PL_catAttractState='idle';else if(PL_attractEng<50)PL_catAttractState='noticing';else PL_catAttractState='watching';}
+    const threshold=PL_attractHadFirstPlay?52:60;
+    if(PL_attractEng>=threshold&&PL_toySpeed>0.5){PL_gamePhase='transitioning';PL_transTimer=75;if(!PL_attractHadFirstPlay){PL_interest=58+catPrefPL[PL_currentLure]*22;}}
+  }
+
+  function PL_updateTransition(){
+    PL_transTimer--;
+    if(PL_transTimer<=0){PL_gamePhase='play';PL_attractHadFirstPlay=true;PL_catState='watching';PL_engagement=25;PL_attractEng=0;PL_interest=58+catPrefPL[PL_currentLure]*22;}
+  }
+
+  function PL_updatePlay(){
+    if(PL_catState==='caught'){PL_catchTimer--;if(PL_catchTimer<=0)PL_showCaughtPopup();return;}
+    if(PL_interest<=0){PL_showBoredPopup();return;}
+    const pref=catPrefPL[PL_currentLure],dist=Math.hypot(PL_toyX-PC_X,PL_toyY-PC_Y),near=dist<CATCH_R,mid=dist<170;
+    if(PL_toySpeed<0.8)PL_interest=Math.max(0,PL_interest-0.15/pref);
+    else if(PL_toySpeed>15)PL_interest=Math.max(0,PL_interest-0.04);
+    else if(mid)PL_interest=Math.max(0,Math.min(100,PL_interest+0.15*pref-0.06));
+    else PL_interest=Math.max(0,Math.min(100,PL_interest+0.04*pref-0.06));
+    if(PL_interest>=30){const sg=PL_toySpeed<0.8?0:PL_toySpeed<3?0.06:PL_toySpeed<14?0.22:0.02;const db=mid?1.0:0.25;PL_engagement=Math.min(100,PL_engagement+sg*db);}
+    if(PL_interest<20)PL_catState='idle';else if(PL_interest<45)PL_catState='watching';else if(PL_interest<72)PL_catState='stalking';else PL_catState=near?'pouncing':'stalking';
+    const readyToCatch=near&&(PL_catState==='pouncing'||PL_catState==='stalking')&&PL_interest>=45;
+    if(readyToCatch){PL_catchZoneTimer++;if(PL_catchZoneTimer>=28)PL_triggerCatch();}else{PL_catchZoneTimer=0;}
+  }
+
+  function PL_triggerCatch(){
+    if(PL_catState==='caught')return;
+    const gain=Math.round((PL_engagement/100)*PL_PER_CATCH_MAX);
+    PL_playFilled=Math.min(PL_playNeed,PL_playFilled+gain);PL_catchCount++;PL_lastWasCatch=true;
+    const decay=6+PL_catchCount*3;PL_interest=Math.max(0,PL_interest-decay);
+    PL_catState='caught';PL_catchTimer=65;PL_pounceAnim=1.0;PL_catchZoneTimer=0;PL_engagement=0;
+    // G 즉시 동기화
+    plSess.filled=PL_playFilled; plSess.catchCount=PL_catchCount; plSess.lastWasCatch=true;
+  }
+
+  const PL_ATTRACT_EMOJI={sleeping:'😴',idle:'😺',noticing:'🙀',watching:'👀'};
+  const PL_ATTRACT_MSG={sleeping:'자고 있어요',idle:'무관심해요',noticing:'뭔가 보이는 것 같은데...',watching:'관심을 보이고 있어요!'};
+  const PL_CAT_EMOJI={idle:'😺',watching:'👀',stalking:'🐈',pouncing:'⚡',caught:'😸',resting:'😴'};
+  const PL_CAT_MSG={idle:'무관심',watching:'눈으로 따라가는 중',stalking:'사냥 준비 중...',pouncing:'잡으러 간다!',caught:'잡았다!',resting:'잠깐 쉬는 중'};
+
+  function PL_render(){
+    PL_update();
+    ctx.fillStyle='#13132a';ctx.fillRect(0,0,PW,PH);
+    const grad=ctx.createLinearGradient(0,300,0,PH);grad.addColorStop(0,'rgba(0,0,0,0)');grad.addColorStop(1,'rgba(0,0,0,0.35)');ctx.fillStyle=grad;ctx.fillRect(0,300,PW,PH-300);
+    if(PL_gamePhase==='attract'||PL_gamePhase==='transitioning'){
+      PL_drawToy();PL_drawCatAttract();
+      if(PL_attractHadFirstPlay)PL_drawInterestBarOnly();
+      if(PL_gamePhase==='transitioning')PL_drawTransFx();
+    }else if(PL_gamePhase==='play'){PL_drawToy();PL_drawCatPlay();PL_drawBars();}
+    else if(PL_gamePhase==='done'){PL_drawToy();PL_drawCatPlay();PL_drawBars();PL_drawDone();}
+    PL_animId=requestAnimationFrame(PL_render);
+  }
+
+  function PL_drawToy(){
+    if(!PL_toyVisible)return;
+    ctx.save();ctx.translate(PL_toyX,PL_toyY);
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,14);ctx.strokeStyle='rgba(200,180,140,0.5)';ctx.lineWidth=1.2;ctx.stroke();
+    const flutter=PL_toySpeed>1?Math.sin(Date.now()/80)*4:0;ctx.rotate(flutter*0.04);
+    ctx.font='22px serif';ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText(PL_LURES.find(l=>l.id===PL_currentLure).emoji,0,14);
+    ctx.restore();
+  }
+
+  function PL_drawCatAttract(){
+    ctx.save();ctx.font='52px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(PL_ATTRACT_EMOJI[PL_catAttractState]||'😴',PC_X,PC_Y);ctx.restore();
+    const alpha=PL_catAttractState==='sleeping'||PL_catAttractState==='idle'?0.18:0.48;
+    ctx.fillStyle=`rgba(255,255,255,${alpha})`;ctx.font='10px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(PL_ATTRACT_MSG[PL_catAttractState]||'',PC_X,PC_Y+34);
+    if(!PL_toyVisible&&!PL_attractHadFirstPlay){ctx.fillStyle='rgba(255,255,255,0.14)';ctx.font='11px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('화면을 드래그해보세요',PW/2,80);}
+  }
+
+  function PL_drawTransFx(){
+    const alpha=(PL_transTimer/90)*0.18;ctx.fillStyle=`rgba(200,168,130,${alpha})`;ctx.fillRect(0,0,PW,PH);
+    if(PL_transTimer>55){const ta=Math.min(1,(PL_transTimer-55)/15)*0.75;ctx.fillStyle=`rgba(255,255,255,${ta})`;ctx.font='bold 14px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('관심을 보입니다!',PW/2,PC_Y-80);}
+  }
+
+  function PL_drawCatPlay(){
+    if(PL_catState==='stalking'||PL_catState==='pouncing'){const pulse=0.10+0.06*Math.sin(Date.now()/200);ctx.beginPath();ctx.arc(PC_X,PC_Y,CATCH_R,0,Math.PI*2);ctx.fillStyle=`rgba(200,168,130,${pulse})`;ctx.fill();}
+    ctx.save();if(PL_pounceAnim>0){const sc=1+PL_pounceAnim*0.12;ctx.translate(PC_X,PC_Y);ctx.scale(sc,sc);ctx.translate(-PC_X,-PC_Y);PL_pounceAnim=Math.max(0,PL_pounceAnim-0.05);}
+    ctx.font='52px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(PL_CAT_EMOJI[PL_catState]||'😺',PC_X,PC_Y);ctx.restore();
+    const alpha=PL_catState==='idle'?0.18:0.4;ctx.fillStyle=`rgba(255,255,255,${alpha})`;ctx.font='10px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText(PL_CAT_MSG[PL_catState]||'',PC_X,PC_Y+34);
+  }
+
+  function PL_drawInterestBarOnly(){
+    const BX=16,BW=PW-32,BH=6,BR=3;ctx.fillStyle='rgba(255,255,255,0.05)';ctx.beginPath();ctx.roundRect(BX,14,BW,BH,BR);ctx.fill();
+    const iw=(PL_interest/100)*BW,ic=PL_interest>60?'#7ac8a0':PL_interest>30?'#c8a870':'#c85868';ctx.fillStyle=ic;ctx.beginPath();ctx.roundRect(BX,14,iw,BH,BR);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='9px Apple SD Gothic Neo,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('흥미',BX,24);
+    const pct=Math.min(100,Math.round(PL_playFilled/PL_playNeed*100));ctx.fillStyle='rgba(255,255,255,0.14)';ctx.font='9px Apple SD Gothic Neo,sans-serif';ctx.textAlign='right';ctx.textBaseline='top';ctx.fillText(`포획 ${PL_catchCount}회 · ${pct}%`,PW-16,24);
+  }
+
+  function PL_drawBars(){
+    const BX=16,BW=PW-32,BH=6,BR=3;
+    ctx.fillStyle='rgba(255,255,255,0.05)';ctx.beginPath();ctx.roundRect(BX,14,BW,BH,BR);ctx.fill();
+    const iw=(PL_interest/100)*BW,ic=PL_interest>60?'#7ac8a0':PL_interest>30?'#c8a870':'#c85868';ctx.fillStyle=ic;ctx.beginPath();ctx.roundRect(BX,14,iw,BH,BR);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font='9px Apple SD Gothic Neo,sans-serif';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillText('흥미',BX,24);
+    ctx.fillStyle='rgba(255,255,255,0.05)';ctx.beginPath();ctx.roundRect(BX,26,BW,BH,BR);ctx.fill();
+    const ew=(PL_engagement/100)*BW;ctx.fillStyle='rgba(130,180,255,0.65)';ctx.beginPath();ctx.roundRect(BX,26,ew,BH,BR);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.18)';ctx.fillText('참여',BX,36);
+    const satPct=Math.min(100,Math.round(PL_playFilled/PL_playNeed*100));
+    const sx=PW-104,sy=PH-72,sw=88,sh=5;ctx.fillStyle='rgba(255,255,255,0.05)';ctx.beginPath();ctx.roundRect(sx,sy,sw,sh,2);ctx.fill();
+    const satCol=satPct>=100?'#a0e8a0':satPct>=60?'#c8d890':'rgba(200,168,130,0.65)';ctx.fillStyle=satCol;ctx.beginPath();ctx.roundRect(sx,sy,(satPct/100)*sw,sh,2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.22)';ctx.font='9px Apple SD Gothic Neo,sans-serif';ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillText(`만족도 ${satPct}%`,sx+sw,sy-2);
+    ctx.fillStyle='rgba(255,255,255,0.16)';ctx.textAlign='left';ctx.fillText(`포획 ${PL_catchCount}회`,BX,sy);
+  }
+
+  function PL_drawDone(){
+    ctx.fillStyle='rgba(10,8,22,0.82)';ctx.fillRect(0,0,PW,PH);
+    const satPct=Math.min(100,Math.round(PL_playFilled/PL_playNeed*100));const finalSat=PL_lastWasCatch?satPct:Math.round(satPct*0.7);
+    ctx.fillStyle='rgba(255,255,255,0.6)';ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('놀이 종료',PW/2,PH/2-22);
+    if(!PL_lastWasCatch&&PL_catchCount>0){ctx.fillStyle='rgba(200,160,80,0.5)';ctx.font='11px Apple SD Gothic Neo,sans-serif';ctx.fillText('마지막에 잡히게 해줬다면 더 좋았을 텐데요',PW/2,PH/2+8);}
+    ctx.fillStyle='rgba(200,168,130,0.5)';ctx.font='12px Apple SD Gothic Neo,sans-serif';ctx.fillText(`만족도 ${finalSat}%  ·  포획 ${PL_catchCount}회`,PW/2,PH/2+36);
+  }
+
+  function PL_showCaughtPopup(){
+    PL_gamePhase='caught_popup';
+    document.getElementById('pl-caught-cnt').textContent=PL_catchCount;
+    document.getElementById('pl-caught-sat').textContent=Math.min(100,Math.round(PL_playFilled/PL_playNeed*100));
+    document.getElementById('play-caught-popup').classList.remove('hidden');
+  }
+
+  function PL_showBoredPopup(){
+    PL_gamePhase='bored';
+    document.getElementById('play-bored-popup').classList.remove('hidden');
+  }
+
+  function PL_resetToInitial(){
+    PL_gamePhase='attract';PL_attractHadFirstPlay=false;PL_attractEng=0;PL_catAttractState='sleeping';PL_catState='idle';PL_engagement=0;PL_interest=0;PL_toyVisible=false;
+  }
+
+  document.getElementById('play-caught-btn').onclick=()=>{document.getElementById('play-caught-popup').classList.add('hidden');PL_resetToInitial();};
+  document.getElementById('play-bored-btn').onclick=()=>{document.getElementById('play-bored-popup').classList.add('hidden');PL_resetToInitial();};
+
+  function PL_renderLureGrid(){
+    const grid=document.getElementById('play-lure-grid');grid.innerHTML='';
+    PL_LURES.forEach(l=>{const div=document.createElement('div');div.className='play-lure-item'+(l.id===PL_currentLure?' selected':'');div.innerHTML=`<div class="play-lure-emoji">${l.emoji}</div><div class="play-lure-name">${l.name}</div>`;div.addEventListener('pointerdown',ev=>{ev.stopPropagation();PL_changeLure(l.id);});grid.appendChild(div);});
+  }
+
+  function PL_changeLure(id){
+    if(id===PL_currentLure){document.getElementById('play-lure-menu').classList.add('hidden');return;}
+    PL_currentLure=id;document.getElementById('play-lure-menu').classList.add('hidden');
+    if(PL_gamePhase==='play'){const isNew=!PL_lureTried[id];PL_lureTried[id]=true;PL_interest=Math.min(100,PL_interest+(isNew?10:4));PL_engagement=0;}
+    else if(PL_gamePhase==='attract')PL_attractEng=Math.max(0,PL_attractEng-8);
+    PL_renderLureGrid();
+  }
+
+  document.getElementById('play-lure-btn').onclick=()=>{document.getElementById('play-lure-menu').classList.toggle('hidden');};
+  document.getElementById('play-help-btn').onclick=()=>{document.getElementById('play-tut').classList.toggle('hidden');};
+  document.getElementById('play-tut-close').onclick=()=>{localStorage.setItem(PL_TUTORIAL_KEY,'1');document.getElementById('play-tut').classList.add('hidden');};
+
+  function PL_getPos(e){const r=canvas.getBoundingClientRect();const sx=PW/r.width,sy=PH/r.height;const pt=e.touches?e.touches[0]:e;return{x:(pt.clientX-r.left)*sx,y:(pt.clientY-r.top)*sy};}
+
+  canvas.addEventListener('pointerdown',e=>{
+    e.preventDefault();if(PL_gamePhase==='done')return;
+    document.getElementById('play-lure-menu').classList.add('hidden');
+    PL_isDragging=true;PL_toyVisible=true;const {x,y}=PL_getPos(e);PL_toyX=x;PL_toyY=y;
+  },{passive:false});
+  canvas.addEventListener('pointermove',e=>{
+    if(!PL_isDragging||PL_gamePhase==='done')return;e.preventDefault();const {x,y}=PL_getPos(e);PL_toyX=x;PL_toyY=Math.min(y,PH-90);
+  },{passive:false});
+  const plPuHandler=()=>{PL_isDragging=false;};
+  window.addEventListener('pointerup',plPuHandler);
+
+  document.getElementById('play-exit-btn').onclick=()=>{
+    if(PL_gamePhase==='done')return;PL_gamePhase='done';
+    // 잠시 후 자동 완료
+    setTimeout(finishPlayGame,1200);
+  };
+
+  function finishPlayGame(){
+    cancelAnimationFrame(PL_animId);window.removeEventListener('pointerup',plPuHandler);overlay.remove();
+    // G 세션 저장
+    plSess.filled=PL_playFilled; plSess.catchCount=PL_catchCount; plSess.lastWasCatch=PL_lastWasCatch;
+    const satPct=Math.min(100,PL_playFilled/PL_playNeed*100);
+    const finalSat=PL_lastWasCatch?satPct:satPct*0.7;
+    const gain=Math.round(finalSat*0.65)+5;
+    G.stats.play=Math.min(100,G.stats.play+gain);G.careToday.play=true;
+    updateStatBars();updateCareButtons();
+    updateRoomCat();
+    showToast(`놀이 완료 · 누적 만족도 ${Math.round(satPct)}%`,'ok');
+  }
+
+  PL_renderLureGrid();
+  if(!localStorage.getItem(PL_TUTORIAL_KEY))document.getElementById('play-tut').classList.remove('hidden');
+  PL_render();
+}
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+document.getElementById('s-intro').querySelector('.btn-primary').onclick = initBreedSelect;
+
+// 첫 화면을 disclaimer로
+(function(){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-disclaimer').classList.add('active');
+})();
+</script>
+</body>
+</html>

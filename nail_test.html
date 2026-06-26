@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>발톱 손질 테스트</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background:#0d0d1c;
+  min-height:100vh;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  touch-action:none; user-select:none;
+}
+.wrap {
+  width:390px;
+  background:#13132a;
+  border-radius:20px;
+  overflow:hidden;
+  position:relative;
+}
+canvas { display:block; width:390px; }
+.bottom-ui {
+  padding:12px 20px 18px;
+  display:flex; align-items:center; justify-content:space-between;
+  min-height:58px;
+}
+.info-text { font-size:11px; color:#444; letter-spacing:0.04em; }
+.tool-btn {
+  font-size:24px; padding:8px 14px;
+  border-radius:12px;
+  border:2px solid rgba(200,168,130,0.15);
+  background:rgba(200,168,130,0.07);
+  cursor:pointer; transition:all 0.15s;
+}
+.tool-btn.active { border-color:#c8a870; background:rgba(200,168,130,0.22); transform:scale(1.06); }
+.next-btn {
+  font-size:12px; color:#c8a882;
+  padding:8px 18px;
+  border:1px solid #3a3060; border-radius:20px;
+  background:transparent; cursor:pointer; display:none;
+}
+.next-btn.show { display:block; }
+.next-btn:active { background:rgba(200,168,130,0.1); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="c" width="390" height="500"></canvas>
+  <div class="bottom-ui">
+    <div class="info-text" id="infoText"></div>
+    <button class="tool-btn" id="toolBtn">✂️</button>
+    <button class="next-btn" id="nextBtn">다음 →</button>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 390, H = 500;
+
+// ══════════════════════════════════════════
+//  데이터 구조
+// ══════════════════════════════════════════
+// 발 4개 정의
+const PAW_DEFS = [
+  { name:'앞발 (왼)',  isBack:false, nailCount:5 },
+  { name:'앞발 (오른)', isBack:false, nailCount:5 },
+  { name:'뒷발 (왼)',  isBack:true,  nailCount:4 },
+  { name:'뒷발 (오른)', isBack:true,  nailCount:4 },
+];
+
+// 앞발 발가락 위치 (5개, 엄지발톱 포함)
+const FRONT_TOE = [
+  { x:108, y:178, ang:-0.72 }, // 엄지발톱 (dewclaw, 안쪽 위)
+  { x:143, y:153, ang:-0.42 },
+  { x:175, y:133, ang:-0.14 },
+  { x:210, y:129, ang:0.12 },
+  { x:243, y:140, ang:0.40 },
+];
+// 뒷발 발가락 위치 (4개)
+const BACK_TOE = [
+  { x:148, y:157, ang:-0.35 },
+  { x:180, y:136, ang:-0.10 },
+  { x:215, y:132, ang:0.12 },
+  { x:248, y:143, ang:0.36 },
+];
+
+// 게임 상태 생성
+function makePaw(def) {
+  return {
+    ...def,
+    nails: Array.from({ length: def.nailCount }, () => ({
+      length: 0.7 + Math.random() * 0.7, // 0.7~1.4
+      cut: false, cutX: null, cutZone: null, bleeding: false,
+    })),
+  };
+}
+const paws = PAW_DEFS.map(makePaw);
+
+// ── 게임 진행 상태 ──
+let screen       = 'overview'; // overview|fadeIn|closeup|result|escape|pawDone|done
+let currentPaw   = 0;
+let currentNail  = 0;
+let fadeAlpha    = 0;
+let hoverX       = -1;
+let cutTotal     = 0;        // 총 자른 횟수 (도망 확률 누적용)
+let escapeAnim   = 0;        // 도망 애니 타이머
+let shakeX       = 0;        // 화면 흔들림
+let shakeTimer   = 0;
+
+// ══════════════════════════════════════════
+//  발톱 구역 계산
+// ══════════════════════════════════════════
+const PAW_END_X   = 128;
+const QUICK_W     = 70;
+const BODY_BASE   = 45;
+const BODY_SCALE  = 78;
+const TIP_W       = 16;
+const NAIL_CY     = 240;
+const NAIL_H      = 40;
+
+function getZones(nail) {
+  const paw_end   = PAW_END_X;
+  const quick_end = paw_end + QUICK_W;
+  const body_end  = quick_end + BODY_BASE + (nail.length - 0.6) * BODY_SCALE;
+  const tip_end   = body_end + TIP_W;
+  return { paw_end, quick_end, body_end, tip_end };
+}
+
+function zoneAt(x, nail) {
+  const z = getZones(nail);
+  if(x <= z.paw_end)   return 'paw';
+  if(x <= z.quick_end) return 'quick';
+  if(x <= z.body_end)  return 'body';
+  if(x <= z.tip_end)   return 'tip';
+  return 'outside';
+}
+
+// ══════════════════════════════════════════
+//  도망 이벤트
+// ══════════════════════════════════════════
+function escapeChance() {
+  const paw   = paws[currentPaw];
+  const base  = paw.isBack ? 0.22 : 0.10;
+  const extra = cutTotal * 0.025;
+  return Math.min(0.65, base + extra);
+}
+
+function maybeEscape() {
+  if(Math.random() < escapeChance()) {
+    screen = 'escape';
+    escapeAnim = 0;
+    shakeTimer = 18;
+    updateUI();
+    return true;
+  }
+  return false;
+}
+
+// ══════════════════════════════════════════
+//  렌더: 클로즈업
+// ══════════════════════════════════════════
+function drawCloseup() {
+  const nail = paws[currentPaw].nails[currentNail];
+  const z    = getZones(nail);
+  const tipX = nail.cut ? nail.cutX : z.tip_end;
+
+  // 영역 배경
+  const zones = [
+    { x:60,        w:z.paw_end-60,          color:'rgba(120,90,60,0.07)',  label:'발' },
+    { x:z.paw_end, w:QUICK_W,               color:'rgba(220,60,70,0.07)',  label:'혈관' },
+    { x:z.quick_end,w:z.body_end-z.quick_end,color:'rgba(60,180,100,0.04)',label:'안전' },
+    { x:z.body_end, w:TIP_W,                color:'rgba(220,210,160,0.04)',label:'' },
+  ];
+  zones.forEach(({x,w,color,label})=>{
+    if(w<=0) return;
+    ctx.fillStyle=color; ctx.fillRect(x,55,w,H-100);
+    if(label){
+      ctx.fillStyle='rgba(255,255,255,0.13)';
+      ctx.font='10px Apple SD Gothic Neo,sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText(label, x+w/2, 78);
+    }
+  });
+
+  // 발(기저부)
+  ctx.beginPath();
+  ctx.roundRect(50, NAIL_CY-NAIL_H*0.85, z.paw_end-50+4, NAIL_H*1.7, [8,0,0,8]);
+  ctx.fillStyle='#3a2e28'; ctx.fill();
+  ctx.strokeStyle='#5a4838'; ctx.lineWidth=1.5; ctx.stroke();
+
+  if(tipX > z.paw_end) {
+    const midX = z.paw_end + (tipX - z.paw_end)*0.5;
+    const topY = NAIL_CY - NAIL_H*0.52;
+    const tipY = NAIL_CY - NAIL_H*0.06;
+
+    // 발톱 채우기
+    ctx.beginPath();
+    ctx.moveTo(z.paw_end, NAIL_CY-NAIL_H*0.46);
+    ctx.quadraticCurveTo(midX, topY-4, tipX, tipY);
+    ctx.quadraticCurveTo(midX, NAIL_CY+NAIL_H*0.44, z.paw_end, NAIL_CY+NAIL_H*0.46);
+    ctx.closePath();
+
+    const gr = ctx.createLinearGradient(z.paw_end, 0, tipX, 0);
+    const qr = Math.min(1, QUICK_W/(tipX-z.paw_end));
+    gr.addColorStop(0,      '#c86878');
+    gr.addColorStop(qr*0.7, '#e08898');
+    gr.addColorStop(qr,     '#d4b870');
+    gr.addColorStop(0.88,   '#e8d8a0');
+    gr.addColorStop(1.0,    '#f0ece8');
+    ctx.fillStyle=gr; ctx.fill();
+
+    // 혈관 선
+    ctx.save(); ctx.clip();
+    [NAIL_CY-5, NAIL_CY+3].forEach(ly=>{
+      ctx.beginPath();
+      ctx.moveTo(z.paw_end+4, ly); ctx.lineTo(z.quick_end-8, ly);
+      ctx.strokeStyle='rgba(200,80,100,0.28)'; ctx.lineWidth=1; ctx.stroke();
+    });
+    ctx.restore();
+
+    // 테두리
+    ctx.beginPath();
+    ctx.moveTo(z.paw_end, NAIL_CY-NAIL_H*0.46);
+    ctx.quadraticCurveTo(midX, topY-4, tipX, tipY);
+    ctx.quadraticCurveTo(midX, NAIL_CY+NAIL_H*0.44, z.paw_end, NAIL_CY+NAIL_H*0.46);
+    ctx.closePath();
+    ctx.strokeStyle='rgba(80,55,35,0.55)'; ctx.lineWidth=1.2; ctx.stroke();
+  }
+
+  // 단면 & 피
+  if(nail.cut) {
+    ctx.beginPath();
+    ctx.moveTo(nail.cutX, NAIL_CY-NAIL_H*0.58);
+    ctx.lineTo(nail.cutX, NAIL_CY+NAIL_H*0.58);
+    ctx.strokeStyle = nail.bleeding ? '#ff4466' : '#d4d0c0';
+    ctx.lineWidth=2.2; ctx.stroke();
+
+    if(nail.bleeding) {
+      for(let i=0;i<5;i++){
+        ctx.beginPath();
+        ctx.ellipse(nail.cutX+(Math.sin(i*2))*3, NAIL_CY+NAIL_H*0.15+i*8, 2.5+i*0.4, 3.8+i*0.6, 0,0,Math.PI*2);
+        ctx.fillStyle=`rgba(220,40,60,${0.82-i*0.14})`; ctx.fill();
+      }
+      ctx.fillStyle='rgba(255,80,100,0.75)';
+      ctx.font='bold 14px Apple SD Gothic Neo,sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('혈관을 건드렸어요', W/2, H-80);
+    } else if(nail.cutZone === 'tip') {
+      ctx.fillStyle='rgba(200,160,60,0.55)';
+      ctx.font='12px Apple SD Gothic Neo,sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('많이 짧아지지 않았어요', W/2, H-80);
+    }
+  }
+
+  // 호버 라인
+  if(!nail.cut && hoverX >= z.paw_end && hoverX <= z.tip_end) {
+    const hz = zoneAt(hoverX, nail);
+    ctx.save();
+    if(hz==='quick') ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(hoverX, NAIL_CY-NAIL_H*0.65); ctx.lineTo(hoverX, NAIL_CY+NAIL_H*0.65);
+    ctx.strokeStyle = hz==='quick' ? 'rgba(255,80,80,0.85)' : 'rgba(100,220,140,0.85)';
+    ctx.lineWidth=2; ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  if(!nail.cut) {
+    ctx.fillStyle='rgba(255,255,255,0.15)';
+    ctx.font='11px Apple SD Gothic Neo,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('발톱을 탭해서 자르세요', W/2, H-38);
+  }
+}
+
+// ══════════════════════════════════════════
+//  렌더: 발 오버뷰
+// ══════════════════════════════════════════
+const PAW_CX=195, PAW_CY=235;
+
+function drawPawOverview(pawIdx) {
+  const paw  = paws[pawIdx];
+  const toes = paw.isBack ? BACK_TOE : FRONT_TOE;
+
+  // 발바닥
+  ctx.beginPath();
+  ctx.ellipse(PAW_CX, PAW_CY+12, 78, 68, 0, 0, Math.PI*2);
+  ctx.fillStyle='#2a2245'; ctx.fill();
+  ctx.strokeStyle='#3a3060'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(PAW_CX, PAW_CY+30, 42, 30, 0, 0, Math.PI*2);
+  ctx.fillStyle='#1e1a38'; ctx.fill();
+
+  // 발가락 위치 (앞/뒷발 조정)
+  const toeBase = paw.isBack
+    ? [{cx:148,cy:172},{cx:180,cy:152},{cx:215,cy:149},{cx:248,cy:160}]
+    : [{cx:110,cy:193},{cx:143,cy:167},{cx:174,cy:148},{cx:210,cy:144},{cx:243,cy:155}];
+
+  toeBase.forEach(({cx,cy})=>{
+    ctx.beginPath(); ctx.ellipse(cx,cy,22,21,0,0,Math.PI*2);
+    ctx.fillStyle='#2a2245'; ctx.fill();
+    ctx.strokeStyle='#3a3060'; ctx.lineWidth=1.2; ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx,cy+4,12,10,0,0,Math.PI*2);
+    ctx.fillStyle='#1e1a38'; ctx.fill();
+  });
+
+  // 발톱
+  paw.nails.forEach((nail, i)=>{
+    const toe = toes[i];
+    const len = nail.cut ? Math.max(10, 10 + nail.length * 10) : 12 + nail.length * 18;
+    ctx.save();
+    ctx.translate(toe.x, toe.y);
+    ctx.rotate(toe.ang);
+    ctx.beginPath();
+    ctx.moveTo(-3, 0);
+    ctx.bezierCurveTo(0, -len*0.38, len*0.5, -len*0.55, len, 0);
+    ctx.bezierCurveTo(len*0.5, len*0.1, 0, len*0.04, -3, 0);
+    ctx.closePath();
+    const gr = ctx.createLinearGradient(0,0,len,0);
+    if(nail.bleeding){
+      gr.addColorStop(0,'#c86878'); gr.addColorStop(1,'#c0b0a0');
+    } else {
+      gr.addColorStop(0,'#c87888'); gr.addColorStop(0.35,'#d4b870');
+      gr.addColorStop(0.85,'#e8d8a0'); gr.addColorStop(1,'#f0ece0');
+    }
+    ctx.fillStyle=gr; ctx.fill();
+    ctx.strokeStyle='rgba(60,40,30,0.45)'; ctx.lineWidth=0.8; ctx.stroke();
+    if(nail.cut){
+      ctx.beginPath(); ctx.moveTo(len*0.5,-4); ctx.lineTo(len*0.5,4);
+      ctx.strokeStyle='rgba(200,195,175,0.7)'; ctx.lineWidth=1.5; ctx.stroke();
+    }
+    ctx.restore();
+  });
+
+  // 발 이름 + 진행
+  const done = paw.nails.filter(n=>n.cut).length;
+  ctx.fillStyle='rgba(255,255,255,0.22)';
+  ctx.font='12px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText(`${paw.name}  ·  ${done}/${paw.nailCount}`, W/2, H-42);
+}
+
+// ══════════════════════════════════════════
+//  렌더: 도망 이벤트
+// ══════════════════════════════════════════
+const ESCAPE_EMOJIS = ['😾','🙀','😿'];
+let escapeEmoji = '😾';
+
+function drawEscape() {
+  escapeAnim = Math.min(1, escapeAnim + 0.04);
+  // 배경 투명 레이어
+  ctx.fillStyle=`rgba(13,13,28,${escapeAnim*0.82})`;
+  ctx.fillRect(0,0,W,H);
+
+  const scale = 0.6 + escapeAnim*0.4;
+  ctx.save();
+  ctx.translate(W/2, H/2 - 30);
+  ctx.scale(scale, scale);
+  ctx.font=`80px serif`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText(escapeEmoji, 0, 0);
+  ctx.restore();
+
+  ctx.globalAlpha = escapeAnim;
+  ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('고양이가 도망쳤어요', W/2, H/2+52);
+  ctx.fillStyle='rgba(255,255,255,0.35)';
+  ctx.font='11px Apple SD Gothic Neo,sans-serif';
+  ctx.fillText('탭해서 다시 잡기', W/2, H/2+76);
+  ctx.globalAlpha=1;
+}
+
+// ══════════════════════════════════════════
+//  렌더: 발 완료
+// ══════════════════════════════════════════
+function drawPawDone() {
+  const paw = paws[currentPaw];
+  const bled = paw.nails.filter(n=>n.bleeding).length;
+  ctx.fillStyle='rgba(200,168,130,0.08)';
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.55)';
+  ctx.font='bold 15px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText(`${paw.name} 완료`, W/2, H/2-16);
+  if(bled>0){
+    ctx.fillStyle='rgba(255,100,120,0.65)';
+    ctx.font='12px Apple SD Gothic Neo,sans-serif';
+    ctx.fillText(`혈관 ${bled}곳 손상`, W/2, H/2+10);
+  }
+}
+
+// ══════════════════════════════════════════
+//  렌더: 전체 완료
+// ══════════════════════════════════════════
+function drawDone() {
+  const totalBled = paws.reduce((a,p)=>a+p.nails.filter(n=>n.bleeding).length, 0);
+  ctx.fillStyle='rgba(200,168,130,0.08)'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.font='bold 16px Apple SD Gothic Neo,sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('발톱 손질 완료', W/2, H/2-18);
+  ctx.fillStyle='rgba(200,168,130,0.55)';
+  ctx.font='12px Apple SD Gothic Neo,sans-serif';
+  ctx.fillText(`총 ${cutTotal}개 자름`, W/2, H/2+8);
+  if(totalBled>0){
+    ctx.fillStyle='rgba(255,110,130,0.65)';
+    ctx.fillText(`혈관 손상 ${totalBled}곳`, W/2, H/2+30);
+  }
+}
+
+// ══════════════════════════════════════════
+//  메인 루프
+// ══════════════════════════════════════════
+function render() {
+  // 흔들림
+  let sx = 0;
+  if(shakeTimer > 0){
+    sx = (Math.random()-0.5) * 5 * (shakeTimer/18);
+    shakeTimer--;
+  }
+  ctx.save();
+  ctx.translate(sx, 0);
+  ctx.clearRect(-10, 0, W+20, H);
+
+  if(screen==='overview') {
+    drawPawOverview(currentPaw);
+  } else if(screen==='fadeIn') {
+    drawPawOverview(currentPaw);
+    ctx.fillStyle=`rgba(13,13,28,${fadeAlpha})`; ctx.fillRect(0,0,W,H);
+    fadeAlpha += 0.07;
+    if(fadeAlpha>=1){ screen='closeup'; updateUI(); }
+  } else if(screen==='closeup' || screen==='result') {
+    drawCloseup();
+  } else if(screen==='escape') {
+    if(screen==='closeup'||screen==='result') drawCloseup();
+    drawEscape();
+  } else if(screen==='pawDone') {
+    drawPawDone();
+  } else if(screen==='done') {
+    drawDone();
+  }
+
+  ctx.restore();
+  requestAnimationFrame(render);
+}
+
+// ══════════════════════════════════════════
+//  UI 업데이트
+// ══════════════════════════════════════════
+const toolBtn  = document.getElementById('toolBtn');
+const nextBtn  = document.getElementById('nextBtn');
+const infoText = document.getElementById('infoText');
+
+function updateUI() {
+  const paw  = paws[currentPaw];
+  const nail = paw.nails[currentNail] || null;
+
+  toolBtn.style.display='';
+  toolBtn.disabled=false;
+  nextBtn.className='next-btn';
+
+  if(screen==='overview') {
+    infoText.textContent = paw.name;
+    toolBtn.textContent='✂️';
+    nextBtn.classList.remove('show');
+  } else if(screen==='closeup') {
+    infoText.textContent=`${currentNail+1} / ${paw.nailCount}`;
+    toolBtn.style.display='none';
+    nextBtn.classList.remove('show');
+  } else if(screen==='result') {
+    infoText.textContent=`${currentNail+1} / ${paw.nailCount}`;
+    toolBtn.style.display='none';
+    nextBtn.textContent='다음 →';
+    nextBtn.classList.add('show');
+  } else if(screen==='escape') {
+    infoText.textContent='';
+    toolBtn.style.display='none';
+    nextBtn.classList.remove('show');
+  } else if(screen==='pawDone') {
+    infoText.textContent='';
+    toolBtn.style.display='none';
+    nextBtn.textContent = currentPaw < paws.length-1 ? '다음 발 →' : '완료';
+    nextBtn.classList.add('show');
+  } else if(screen==='done') {
+    infoText.textContent='';
+    toolBtn.style.display='none';
+    nextBtn.textContent='닫기';
+    nextBtn.classList.add('show');
+  }
+}
+
+// ══════════════════════════════════════════
+//  이벤트 핸들러
+// ══════════════════════════════════════════
+toolBtn.addEventListener('click', ()=>{
+  if(screen==='overview'){
+    currentNail=0;
+    screen='fadeIn'; fadeAlpha=0;
+    updateUI();
+  }
+});
+
+nextBtn.addEventListener('click', ()=>{
+  if(screen==='result'){
+    // 다음 발톱으로
+    currentNail++;
+    if(currentNail >= paws[currentPaw].nailCount){
+      // 이 발 완료
+      screen='pawDone'; updateUI();
+    } else {
+      screen='closeup'; updateUI();
+    }
+  } else if(screen==='pawDone'){
+    currentPaw++;
+    if(currentPaw >= paws.length){
+      screen='done'; updateUI();
+    } else {
+      currentNail=0;
+      screen='overview'; updateUI();
+    }
+  } else if(screen==='done'){
+    // 메인 연결 시 finishNailGame() 호출
+  }
+});
+
+function getPos(e){
+  const r=canvas.getBoundingClientRect();
+  const sx=W/r.width, sy=H/r.height;
+  const pt=e.touches?e.touches[0]:e;
+  return {x:(pt.clientX-r.left)*sx, y:(pt.clientY-r.top)*sy};
+}
+
+canvas.addEventListener('pointermove', e=>{
+  if(screen!=='closeup') return;
+  hoverX=getPos(e).x;
+});
+canvas.addEventListener('pointerleave', ()=>{ hoverX=-1; });
+
+canvas.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+
+  // 도망 중 → 다시 잡기
+  if(screen==='escape'){
+    screen='result'; escapeAnim=0; updateUI(); return;
+  }
+
+  if(screen!=='closeup') return;
+  const {x,y}=getPos(e);
+  if(y < NAIL_CY-NAIL_H || y > NAIL_CY+NAIL_H) return;
+
+  const nail = paws[currentPaw].nails[currentNail];
+  if(nail.cut) return;
+
+  const z    = getZones(nail);
+  const zone = zoneAt(x, nail);
+  if(zone==='paw'||zone==='outside') return;
+
+  nail.cut=true; nail.cutX=x; nail.cutZone=zone;
+  nail.bleeding=(zone==='quick');
+  cutTotal++;
+  screen='result';
+
+  // 도망 체크 (피났을 때 확률 2배)
+  const escMod = nail.bleeding ? 2 : 1;
+  if(Math.random() < escapeChance()*escMod){
+    escapeEmoji = ESCAPE_EMOJIS[Math.floor(Math.random()*ESCAPE_EMOJIS.length)];
+    setTimeout(()=>{ screen='escape'; escapeAnim=0; shakeTimer=18; updateUI(); }, 600);
+  }
+  updateUI();
+}, {passive:false});
+
+// 초기화
+updateUI();
+render();
+</script>
+</body>
+</html>
